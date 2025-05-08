@@ -1,4 +1,5 @@
 const { default: Connection }=require('../Connection/ConnectDb');
+const {ObjectId}=require('mongodb')
 
 const AddLocation = async (req, res) => {
     try{
@@ -42,5 +43,29 @@ const AddLocation = async (req, res) => {
     }
 }
 
-module.exports={AddLocation,GetLocation}
+
+const DELETE=async(req,res)=>{
+  try{
+    const db=await Connection();
+    const collection=db.collection("Locations");
+    const id=req.params;
+    const result=await collection.findOneAndDelete({_id:new ObjectId(id)});
+    if(result){
+      return res.status(200).json({
+        message: "Zone Deleted Successfully",
+        result: {
+            id: id,
+        }
+    })
+    }
+    else{
+      return res.status(400).json({ message: 'Zone not found' });
+    }
+  }
+  catch(err){
+     res.send(err)
+  }
+}
+
+module.exports={AddLocation,GetLocation,DELETE}
 
