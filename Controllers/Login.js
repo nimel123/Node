@@ -1,5 +1,6 @@
 const { default: Connection }=require('../Connection/ConnectDb');
-const {ObjectId}=require('mongodb')
+const {ObjectId, Collection}=require('mongodb')
+
 
 const AddLocation = async (req, res) => {
     try{
@@ -44,7 +45,7 @@ const AddLocation = async (req, res) => {
 }
 
 
-const DELETE=async(req,res)=>{
+const Delete=async(req,res)=>{
   try{
     const db=await Connection();
     const collection=db.collection("Locations");
@@ -67,5 +68,87 @@ const DELETE=async(req,res)=>{
   }
 }
 
-module.exports={AddLocation,GetLocation,DELETE}
+
+// Add Categories (with file upload)
+const Categories = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('Categories');
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: 'File is required' });
+    }
+
+    const filePath = file.path.replace(/\\/g, '/'); // Normalize file path
+    const { name, description } = req.body;
+
+    const result = await collection.insertOne({
+      name,
+      description,
+       file: `/uploads/${filePath.split('upload/')[1]}`
+    });
+
+    if (result.acknowledged) {
+      res.status(200).send({
+        message: "Category added successfully",
+        result:result
+      });
+    }
+  } catch (err) {
+    console.error('Error adding category:', err);
+    res.status(500).send({ message: 'An error occurred while adding category' });
+  }
+};
+
+// Get Categories
+const GetCategories = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('Categories');
+    const result = await collection.find().toArray();
+    if (result.length > 0) {
+      res.status(200).send({
+        message: "Categories fetched successfully",
+        result: result
+      });
+    } else {
+      res.status(404).send({ message: 'No categories available' });
+    }
+  } catch (err) {
+    console.error('Error fetching categories:', err);
+    res.status(500).send({
+      message: 'An error occurred while fetching categories',
+      error: err.message
+    });
+  }
+};
+
+
+const DeleteCategories=async(req,res)=>{
+   try{
+    const db=await Connection();
+    const collection=db.collection("Categories");
+    const id=req.params;
+    const result=await collection.findOneAndDelete({_id:new ObjectId(id)});
+    if(result){
+      return res.status(200).json({
+        message: "Categories Deleted Successfully",
+        result: {
+            id: id,
+        }
+    })
+    }
+    else{
+      return res.status(400).json({ message: 'Not found' });
+    }
+  }
+  catch(err){
+     res.send(err)
+  }
+}
+
+
+
+module.exports={AddLocation,GetLocation,Delete,Categories,GetCategories,DeleteCategories}
 
