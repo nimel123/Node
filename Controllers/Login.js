@@ -1,5 +1,6 @@
 const { default: Connection }=require('../Connection/ConnectDb');
 const {ObjectId, Collection}=require('mongodb')
+const citydata=require('./City');
 
 
 const AddLocation = async (req, res) => {
@@ -74,25 +75,45 @@ const Categories = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection('Categories');
-    const file = req.file;
 
-    if (!file) {
-      return res.status(400).json({ message: 'File is required' });
+    const files = req.files;
+    const categoryImage = files?.file?.[0]; // Main category image
+    const subImages = files?.subImages || []; // Subcategory images
+
+    if (!categoryImage) {
+      return res.status(400).json({ message: 'Category image is required' });
     }
 
-    const filePath = file.path.replace(/\\/g, '/'); // Normalize file path
-    const { name, description } = req.body;
+    const { name, description, subcat, city, zones } = req.body;
 
+    // Parse subcategory JSON string
+    const parsedSubcat = JSON.parse(subcat);
+
+    // Add image to each subcategory
+    const subcategoriesWithImages = parsedSubcat.map((sub, index) => ({
+      ...sub,
+      file: `/uploads/${subImages[index]?.filename || ''}`
+    }));
+
+    // Check if city and zones are provided
+    if (!city || !zones || zones.length === 0) {
+      return res.status(400).json({ message: 'City and Zones are required' });
+    }
+
+    // Insert the category into the database
     const result = await collection.insertOne({
       name,
       description,
-       file: `/uploads/${filePath.split('upload/')[1]}`
+      subcat: subcategoriesWithImages,
+      file: `/uploads/${categoryImage.filename}`,
+      city,
+      zones // Store the zones array as it is
     });
 
     if (result.acknowledged) {
       res.status(200).send({
         message: "Category added successfully",
-        result:result
+        result
       });
     }
   } catch (err) {
@@ -100,6 +121,7 @@ const Categories = async (req, res) => {
     res.status(500).send({ message: 'An error occurred while adding category' });
   }
 };
+
 
 // Get Categories
 const GetCategories = async (req, res) => {
@@ -149,6 +171,38 @@ const DeleteCategories=async(req,res)=>{
 }
 
 
+//City API
+const CityData=async(req,res)=>{
+  try{
+    const db=await Connection();
+    const collection=db.collection('CityData');
+    const result=await collection.insertMany(citydata);
+    if(result.acknowledged){
+      res.send(result);
+    }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
 
-module.exports={AddLocation,GetLocation,Delete,Categories,GetCategories,DeleteCategories}
+//GetCityData
+
+const GetCityData=async(req,res)=>{
+  try{
+    const db=await Connection();
+    const collection=db.collection('CityData');
+    const result=await collection.find().toArray();
+    if(result){
+      res.send(result);
+    }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
+
+
+
+module.exports={AddLocation,GetLocation,Delete,Categories,GetCategories,DeleteCategories,CityData,GetCityData}
 
