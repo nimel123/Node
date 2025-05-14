@@ -218,8 +218,8 @@ const Login = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection('Login');
-    const { phone, password } = req.body;
-    const result = await collection.findOne({ phone, password });
+    const { phone } = req.body;
+    const result = await collection.findOne({ phone });
     if (result) {
       const token = jwt.sign({
         data: result,
@@ -247,14 +247,15 @@ const VeryfyOtp=async(req,res)=>{
   const db = await Connection();
     const collection = db.collection('Login');
     const { otp } = req.body;
-    const result = await collection.findOne({ otp });
-    if(result){
-      res.send({
-        otp:result.otp
+    const checkOtp=await collection.findOne({otp:otp})
+    if(checkOtp){
+      res.status(200).send({
+        message:"Otp Verified Successfully",
+        otp:checkOtp.otp
       })
     }
     else{
-      res.send('Wrong OTP')
+      res.status(400).send('Wrong OTP')
     }
 }
 
