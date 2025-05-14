@@ -31,5 +31,7 @@ router.get('/getCategories', Controll.GetCategories);
 router.delete('/delete/:id',Controll.DeleteCategories)
 router.get('/addcitydata',Controll.CityData)
 router.get('/getcitydata',Controll.GetCityData)
+router.post('/login',Controll.Login)
+router.post('/otp',Controll.VeryfyOtp)
 
 module.exports = router;

@@ -1,71 +1,77 @@
-const { default: Connection }=require('../Connection/ConnectDb');
-const {ObjectId, Collection}=require('mongodb')
-const citydata=require('./City');
+const { default: Connection } = require('../Connection/ConnectDb');
+const { ObjectId, Collection } = require('mongodb')
+const citydata = require('./City');
+const jwt = require('jsonwebtoken');
+let jwtSecretKey = "ramesh@123";
 
 
+//Add-Location API
 const AddLocation = async (req, res) => {
-    try{
-      const db=await Connection();
-      const collection=db.collection("Locations");
-      const {address}=req.body;
-      if(!address){
-        return res.status(400).json({ message: 'Address Required' });
-      }
-      const result=await collection.insertOne({address});
-      if(result.acknowledged){
-        res.status(200).send({
-            message:"Success",
-            address:result
-        })
-      }
+  try {
+    const db = await Connection();
+    const collection = db.collection("Locations");
+    const { address } = req.body;
+    if (!address) {
+      return res.status(400).json({ message: 'Address Required' });
     }
-    catch(err){
-        res.send('Error')
+    const result = await collection.insertOne({ address });
+    if (result.acknowledged) {
+      res.status(200).send({
+        message: "Success",
+        address: result
+      })
     }
-    }
-
-
- const GetLocation = async (req, res) => {
-    try{
-        const db=await Connection();
-        const collection=db.collection("Locations");
-         const result = await collection.find().toArray();
-            if (result) {
-               return res.status(200).send({
-                result:result
-               })
-            }
-            else {
-                return res.status(400).json({ message: 'Location not find' });
-            }
-    }
-    catch(err){
-        console.log(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
+  }
+  catch (err) {
+    res.send('Error')
+  }
 }
 
 
-const Delete=async(req,res)=>{
-  try{
-    const db=await Connection();
-    const collection=db.collection("Locations");
-    const id=req.params;
-    const result=await collection.findOneAndDelete({_id:new ObjectId(id)});
-    if(result){
+
+//GetLocation-API
+const GetLocation = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Locations");
+    const result = await collection.find().toArray();
+    if (result) {
+      return res.status(200).send({
+        result: result
+      })
+    }
+    else {
+      return res.status(400).json({ message: 'Location not find' });
+    }
+  }
+  catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+
+//LOcation Delete API
+const Delete = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Locations");
+    const id = req.params;
+    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
+    if (result) {
       return res.status(200).json({
         message: "Zone Deleted Successfully",
         result: {
-            id: id,
+          id: id,
         }
-    })
+      })
     }
-    else{
+    else {
       return res.status(400).json({ message: 'Zone not found' });
     }
   }
-  catch(err){
-     res.send(err)
+  catch (err) {
+    res.send(err)
   }
 }
 
@@ -147,62 +153,113 @@ const GetCategories = async (req, res) => {
 };
 
 
-const DeleteCategories=async(req,res)=>{
-   try{
-    const db=await Connection();
-    const collection=db.collection("Categories");
-    const id=req.params;
-    const result=await collection.findOneAndDelete({_id:new ObjectId(id)});
-    if(result){
+
+//Delete Categories API
+const DeleteCategories = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+    const id = req.params;
+    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
+    if (result) {
       return res.status(200).json({
         message: "Categories Deleted Successfully",
         result: {
-            id: id,
+          id: id,
         }
-    })
+      })
     }
-    else{
+    else {
       return res.status(400).json({ message: 'Not found' });
     }
   }
-  catch(err){
-     res.send(err)
+  catch (err) {
+    res.send(err)
   }
 }
 
 
 //City API
-const CityData=async(req,res)=>{
-  try{
-    const db=await Connection();
-    const collection=db.collection('CityData');
-    const result=await collection.insertMany(citydata);
-    if(result.acknowledged){
+const CityData = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('CityData');
+    const result = await collection.insertMany(citydata);
+    if (result.acknowledged) {
       res.send(result);
     }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
 
 //GetCityData
 
-const GetCityData=async(req,res)=>{
-  try{
-    const db=await Connection();
-    const collection=db.collection('CityData');
-    const result=await collection.find().toArray();
-    if(result){
+const GetCityData = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('CityData');
+    const result = await collection.find().toArray();
+    if (result) {
       res.send(result);
     }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
 
 
 
-module.exports={AddLocation,GetLocation,Delete,Categories,GetCategories,DeleteCategories,CityData,GetCityData}
+//LOGIN API
+
+const Login = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('Login');
+    const { phone, password } = req.body;
+    const result = await collection.findOne({ phone, password });
+    if (result) {
+      const token = jwt.sign({
+        data: result,
+      }, jwtSecretKey, { expiresIn: '3h' }
+      )
+      res.status(200).send({
+        data: result,
+        message: 'Login Success',
+        auth: token
+      })
+    }
+    else {
+      res.status(400).send({
+        message: "'Plaease Enter Valid details'"
+      })
+    }
+  }
+  catch (err) {
+    res.send(err)
+  }
+
+}
+
+const VeryfyOtp=async(req,res)=>{
+  const db = await Connection();
+    const collection = db.collection('Login');
+    const { otp } = req.body;
+    const result = await collection.findOne({ otp });
+    if(result){
+      res.send(result.otp)
+    }
+    else{
+      res.send('Wrong OTP')
+    }
+}
+
+
+module.exports = {
+  AddLocation, GetLocation, Delete, Categories,
+  GetCategories, DeleteCategories, CityData, GetCityData,
+  Login,VeryfyOtp
+}
 
