@@ -249,7 +249,9 @@ const VeryfyOtp=async(req,res)=>{
     const { otp } = req.body;
     const result = await collection.findOne({ otp });
     if(result){
-      res.send(result.otp)
+      res.send({
+        otp:result.otp
+      })
     }
     else{
       res.send('Wrong OTP')
