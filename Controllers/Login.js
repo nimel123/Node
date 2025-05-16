@@ -1,11 +1,34 @@
 const { default: Connection } = require('../Connection/ConnectDb');
-const { ObjectId, Collection } = require('mongodb')
+const { ObjectId } = require('mongodb');
 const citydata = require('./City');
 const jwt = require('jsonwebtoken');
-let jwtSecretKey = "ramesh@123";
 
 
-//Add-Location API
+const jwtSecretKey = "ramesh@123";
+
+// Utility: Get location name from Google Maps API
+const getLocationName = async (lat, lng) => {
+  try {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;  // Make sure to set this in .env
+    if (!apiKey) throw new Error("Google Maps API key not set in environment");
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status === "OK" && data.results.length > 0) {
+      return data.results[0].formatted_address;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching location name:", error.message);
+    return null;
+  }
+};
+
+
+// Add Location API
 const AddLocation = async (req, res) => {
   try {
     const db = await Connection();
@@ -16,64 +39,60 @@ const AddLocation = async (req, res) => {
     }
     const result = await collection.insertOne({ address });
     if (result.acknowledged) {
-      res.status(200).send({
+      res.status(200).json({
         message: "Success",
-        address: result
-      })
+        address: result.insertedId
+      });
     }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
-  catch (err) {
-    res.send('Error')
-  }
-}
+};
 
 
-
-//GetLocation-API
+// Get Location API
 const GetLocation = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Locations");
     const result = await collection.find().toArray();
-    if (result) {
-      return res.status(200).send({
+    if (result.length > 0) {
+      return res.status(200).json({
         result: result
-      })
+      });
+    } else {
+      return res.status(404).json({ message: 'No Locations found' });
     }
-    else {
-      return res.status(400).json({ message: 'Location not find' });
-    }
-  }
-  catch (err) {
-    console.log(err);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
-}
+};
 
 
-//LOcation Delete API
+// Location Delete API
 const Delete = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Locations");
-    const id = req.params;
+    const id = req.params.id;  // Correct extraction of id
+    if (!id) return res.status(400).json({ message: "Id parameter missing" });
+
     const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
-    if (result) {
+    if (result.value) {
       return res.status(200).json({
-        message: "Zone Deleted Successfully",
-        result: {
-          id: id,
-        }
-      })
+        message: "Location Deleted Successfully",
+        id: id
+      });
+    } else {
+      return res.status(404).json({ message: 'Location not found' });
     }
-    else {
-      return res.status(400).json({ message: 'Zone not found' });
-    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
-  catch (err) {
-    res.send(err)
-  }
-}
+};
 
 
 // Add Categories (with file upload)
@@ -82,7 +101,7 @@ const Categories = async (req, res) => {
     const db = await Connection();
     const collection = db.collection('Categories');
 
-    const files = req.files;
+    const files = req.files || {};
     const categoryImage = files?.file?.[0]; // Main category image
     const subImages = files?.subImages || []; // Subcategory images
 
@@ -92,8 +111,17 @@ const Categories = async (req, res) => {
 
     const { name, description, subcat, city, zones } = req.body;
 
+    if (!name || !description || !subcat) {
+      return res.status(400).json({ message: 'Name, description and subcat are required' });
+    }
+
     // Parse subcategory JSON string
-    const parsedSubcat = JSON.parse(subcat);
+    let parsedSubcat;
+    try {
+      parsedSubcat = JSON.parse(subcat);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid subcat JSON format' });
+    }
 
     // Add image to each subcategory
     const subcategoriesWithImages = parsedSubcat.map((sub, index) => ({
@@ -117,14 +145,14 @@ const Categories = async (req, res) => {
     });
 
     if (result.acknowledged) {
-      res.status(200).send({
+      res.status(200).json({
         message: "Category added successfully",
         result
       });
     }
   } catch (err) {
     console.error('Error adding category:', err);
-    res.status(500).send({ message: 'An error occurred while adding category' });
+    res.status(500).json({ message: 'An error occurred while adding category' });
   }
 };
 
@@ -136,16 +164,16 @@ const GetCategories = async (req, res) => {
     const collection = db.collection('Categories');
     const result = await collection.find().toArray();
     if (result.length > 0) {
-      res.status(200).send({
+      res.status(200).json({
         message: "Categories fetched successfully",
         result: result
       });
     } else {
-      res.status(404).send({ message: 'No categories available' });
+      res.status(404).json({ message: 'No categories available' });
     }
   } catch (err) {
     console.error('Error fetching categories:', err);
-    res.status(500).send({
+    res.status(500).json({
       message: 'An error occurred while fetching categories',
       error: err.message
     });
@@ -153,116 +181,166 @@ const GetCategories = async (req, res) => {
 };
 
 
-
-//Delete Categories API
+// Delete Categories API
 const DeleteCategories = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Categories");
-    const id = req.params;
+    const id = req.params.id;  // Correct extraction of id
+    if (!id) return res.status(400).json({ message: "Id parameter missing" });
+
     const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
-    if (result) {
+    if (result.value) {
       return res.status(200).json({
-        message: "Categories Deleted Successfully",
-        result: {
-          id: id,
-        }
-      })
+        message: "Category Deleted Successfully",
+        id: id
+      });
+    } else {
+      return res.status(404).json({ message: 'Category not found' });
     }
-    else {
-      return res.status(400).json({ message: 'Not found' });
-    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
-  catch (err) {
-    res.send(err)
-  }
-}
+};
 
 
-//City API
+// City API - Insert bulk city data
 const CityData = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection('CityData');
     const result = await collection.insertMany(citydata);
     if (result.acknowledged) {
-      res.send(result);
+      res.status(200).json(result);
     }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
-  catch (err) {
-    res.send(err)
-  }
-}
+};
 
-//GetCityData
 
+// Get City Data API
 const GetCityData = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection('CityData');
     const result = await collection.find().toArray();
-    if (result) {
-      res.send(result);
+    if (result.length > 0) {
+      res.status(200).json(result);
+    } else {
+      res.status(404).json({ message: 'No City Data found' });
     }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
-  catch (err) {
-    res.send(err)
-  }
-}
+};
 
 
-
-//LOGIN API
-
+// LOGIN API
 const Login = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection('Login');
     const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone is required' });
+    }
+
     const result = await collection.findOne({ phone });
     if (result) {
       const token = jwt.sign({
-        data: result,
-      }, jwtSecretKey, { expiresIn: '3h' }
-      )
-      res.status(200).send({
+        data: result._id,
+      }, jwtSecretKey, { expiresIn: '3h' });
+
+      res.status(200).json({
         data: result,
         message: 'Login Success',
         auth: token
-      })
+      });
+    } else {
+      res.status(400).json({
+        message: "Please Enter Valid details"
+      });
     }
-    else {
-      res.status(400).send({
-        message: "'Plaease Enter Valid details'"
-      })
-    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
-  catch (err) {
-    res.send(err)
-  }
+};
 
-}
 
-const VeryfyOtp=async(req,res)=>{
-  const db = await Connection();
+// Verify OTP API
+const VeryfyOtp = async (req, res) => {
+  try {
+    const db = await Connection();
     const collection = db.collection('Login');
     const { otp } = req.body;
-    const checkOtp=await collection.findOne({otp:otp})
-    if(checkOtp){
-      res.status(200).send({
-        message:"Otp Verified Successfully",
-        otp:checkOtp.otp
-      })
+    if (!otp) {
+      return res.status(400).json({ message: 'OTP required' });
     }
-    else{
-      res.status(400).send('Wrong OTP')
+    const checkOtp = await collection.findOne({ otp: otp });
+    if (checkOtp) {
+      res.status(200).json({
+        message: "Otp Verified Successfully",
+        otp: checkOtp.otp
+      });
+    } else {
+      res.status(400).json({ message: 'Wrong OTP' });
     }
-}
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+
+// Live Location Tracker API
+const LocationTracker = async (req, res) => {
+  try {
+    const db = await Connection();
+    const { userId, latitude, longitude } = req.body;
+
+    if (!userId || latitude == null || longitude == null) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
+    }
+
+    // Get location name from Google API
+    const locationName = await getLocationName(latitude, longitude);
+
+    await db.collection("Live-Location").updateOne(
+      { userId: userId },
+      {
+        $set: {
+          latitude,
+          longitude,
+          locationName,   // <-- save human-readable location name here
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
+
+    res.status(200).json({ success: true, message: "Location saved", locationName });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 
 module.exports = {
-  AddLocation, GetLocation, Delete, Categories,
-  GetCategories, DeleteCategories, CityData, GetCityData,
-  Login,VeryfyOtp
-}
-
+  AddLocation,
+  GetLocation,
+  Delete,
+  Categories,
+  GetCategories,
+  DeleteCategories,
+  CityData,
+  GetCityData,
+  Login,
+  VeryfyOtp,
+  LocationTracker,
+};
