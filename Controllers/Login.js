@@ -6,49 +6,41 @@ const jwt = require('jsonwebtoken');
 
 const jwtSecretKey = "ramesh@123";
 
-// Utility: Get location name from Google Maps API
-const getLocationName = async (lat, lng) => {
-  try {
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;  // Make sure to set this in .env
-    if (!apiKey) throw new Error("Google Maps API key not set in environment");
-
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.status === "OK" && data.results.length > 0) {
-      return data.results[0].formatted_address;
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching location name:", error.message);
-    return null;
-  }
-};
-
-
 // Add Location API
 const AddLocation = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Locations");
-    const { address } = req.body;
-    if (!address) {
-      return res.status(400).json({ message: 'Address Required' });
+
+    const { city, address, latitude, longitude, range } = req.body;
+
+    // Validate all required fields
+    if (!city || !address || !latitude || !longitude || !range) {
+      return res.status(400).json({ message: 'All fields are required' });
     }
-    const result = await collection.insertOne({ address });
+
+    // Insert full location data
+    const result = await collection.insertOne({
+      city,
+      address,
+      latitude,
+      longitude,
+      range,
+      createdAt: new Date()
+    });
+
     if (result.acknowledged) {
       res.status(200).json({
-        message: "Success",
-        address: result.insertedId
+        message: "Location saved successfully",
+        locationId: result.insertedId
       });
     }
   } catch (err) {
-    console.error(err);
+    console.error("Error saving location:", err);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
 
 
 // Get Location API
@@ -71,22 +63,21 @@ const GetLocation = async (req, res) => {
 };
 
 
-// Location Delete API
+// Zone Delete API
 const Delete = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Locations");
-    const id = req.params.id;  // Correct extraction of id
+    const id = req.params.id;
     if (!id) return res.status(400).json({ message: "Id parameter missing" });
 
     const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
-    if (result.value) {
+    if (result) {
       return res.status(200).json({
-        message: "Location Deleted Successfully",
-        id: id
+        message: "Zone Deleted Successfully",
       });
     } else {
-      return res.status(404).json({ message: 'Location not found' });
+      return res.status(404).json({ message: 'Zone not found' });
     }
   } catch (err) {
     console.error(err);
@@ -99,20 +90,34 @@ const Delete = async (req, res) => {
 const Categories = async (req, res) => {
   try {
     const db = await Connection();
-    const collection = db.collection('Categories');
+    const collection = db.collection("Categories");
 
     const files = req.files || {};
     const categoryImage = files?.file?.[0]; // Main category image
     const subImages = files?.subImages || []; // Subcategory images
 
-    if (!categoryImage) {
-      return res.status(400).json({ message: 'Category image is required' });
-    }
-
     const { name, description, subcat, city, zones } = req.body;
 
-    if (!name || !description || !subcat) {
-      return res.status(400).json({ message: 'Name, description and subcat are required' });
+    // Collect all missing fields
+    const missingFields = [];
+
+    if (!categoryImage) missingFields.push("Category image");
+    if (!name || name.trim() === "") missingFields.push("Name");
+    if (!description || description.trim() === "") missingFields.push("Description");
+    if (!subcat || subcat.trim() === "") missingFields.push("Subcat");
+    if (!city || city.trim() === "") missingFields.push("City");
+    // For zones, check if array or string and if empty
+    if (
+      !zones ||
+      (Array.isArray(zones) && zones.length === 0) ||
+      (typeof zones === "string" && zones.trim() === "")
+    )
+      missingFields.push("Zones");
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: `The following fields are required and missing: ${missingFields.join(", ")}`,
+      });
     }
 
     // Parse subcategory JSON string
@@ -120,19 +125,14 @@ const Categories = async (req, res) => {
     try {
       parsedSubcat = JSON.parse(subcat);
     } catch (err) {
-      return res.status(400).json({ message: 'Invalid subcat JSON format' });
+      return res.status(400).json({ message: "Invalid subcat JSON format" });
     }
 
-    // Add image to each subcategory
+    // Add image path to each subcategory
     const subcategoriesWithImages = parsedSubcat.map((sub, index) => ({
       ...sub,
-      file: `/uploads/${subImages[index]?.filename || ''}`
+      file: `/uploads/${subImages[index]?.filename || ""}`,
     }));
-
-    // Check if city and zones are provided
-    if (!city || !zones || zones.length === 0) {
-      return res.status(400).json({ message: 'City and Zones are required' });
-    }
 
     // Insert the category into the database
     const result = await collection.insertOne({
@@ -141,18 +141,18 @@ const Categories = async (req, res) => {
       subcat: subcategoriesWithImages,
       file: `/uploads/${categoryImage.filename}`,
       city,
-      zones // Store the zones array as it is
+      zones, // Store zones as is
     });
 
     if (result.acknowledged) {
       res.status(200).json({
         message: "Category added successfully",
-        result
+        result,
       });
     }
   } catch (err) {
-    console.error('Error adding category:', err);
-    res.status(500).json({ message: 'An error occurred while adding category' });
+    console.error("Error adding category:", err);
+    res.status(500).json({ message: "An error occurred while adding category" });
   }
 };
 
@@ -297,38 +297,97 @@ const VeryfyOtp = async (req, res) => {
 };
 
 
-// Live Location Tracker API
-const LocationTracker = async (req, res) => {
+
+const AddCityData = async (req, res) => {
   try {
-    const db = await Connection();
-    const { userId, latitude, longitude } = req.body;
+    const db = await Connection(); // your MongoDB connection function
+    const { city, state, fullAddress, latitude, longitude } = req.body;
 
-    if (!userId || latitude == null || longitude == null) {
-      return res.status(400).json({ success: false, message: "Missing fields" });
-    }
+    const collection = db.collection("AvalibleCity");
 
-    // Get location name from Google API
-    const locationName = await getLocationName(latitude, longitude);
-
-    await db.collection("Live-Location").updateOne(
-      { userId: userId },
-      {
-        $set: {
-          latitude,
-          longitude,
-          locationName,   // <-- save human-readable location name here
-          updatedAt: new Date(),
-        },
-      },
-      { upsert: true }
-    );
-
-    res.status(200).json({ success: true, message: "Location saved", locationName });
+    const dataToInsert = {
+      city,
+      state,
+      fullAddress,
+      latitude,
+      longitude,
+      createdAt: new Date() 
+    };
+    const result = await collection.insertOne(dataToInsert);
+    res.status(200).json({ message: "City added successfully", result:result });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    res.status(500).json({ message: "Error adding city", error: err.message });
   }
 };
+
+const GetAvalibleCityData=async(req,res)=>{
+  try{
+     const db = await Connection(); 
+    const collection = db.collection("AvalibleCity");
+    const result=await collection.find().toArray();
+    if(result){
+      res.status(200).send({
+        result:result
+      })
+    }
+    else{
+      res.status(400).send('Not')
+    }
+  }
+  catch(err){
+   res.send(err)
+  }
+}
+
+const DeleteCityData = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("AvalibleCity");
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ message: "Id parameter missing" });
+
+    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
+    if (result) {
+      return res.status(200).json({
+        message: "City Deleted Successfully",
+      });
+    } else {
+      return res.status(404).json({ message: 'City not found' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+
+
+const fetch = require('node-fetch');
+
+const SearchLocation=async (req, res) => {
+  const { query } = req.params;
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`, {
+      headers: {
+        'User-Agent': 'MyApp/1.0 (rnimel5@gmail.com)' // REQUIRED by Nominatim
+      },
+      timeout: 10000 // optional timeout (10s)
+    });
+
+    if (!response.ok) {
+      throw new Error('Nominatim response not OK');
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching from Nominatim:", error.message);
+    res.status(500).json({ message: 'Failed to fetch data from Nominatim' });
+  }
+};
+
 
 
 module.exports = {
@@ -342,5 +401,8 @@ module.exports = {
   GetCityData,
   Login,
   VeryfyOtp,
-  LocationTracker,
+  AddCityData,
+  GetAvalibleCityData,
+  DeleteCityData,
+  SearchLocation
 };

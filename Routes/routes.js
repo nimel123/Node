@@ -29,9 +29,14 @@ router.post(
 );
 router.get('/getCategories', Controll.GetCategories);
 router.delete('/delete/:id',Controll.DeleteCategories)
+router.delete('/deleteCity/:id',Controll.DeleteCityData)
 router.get('/addcitydata',Controll.CityData)
-router.get('/getcitydata',Controll.GetCityData)
 router.post('/login',Controll.Login)
 router.post('/otp',Controll.VeryfyOtp)
+router.post('/addcitydata',Controll.AddCityData)
+router.get('/getcitydata',Controll.GetAvalibleCityData)
+router.get('/api/search-location', Controll.SearchLocation);
+
+
 
 module.exports = router;
