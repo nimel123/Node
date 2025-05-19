@@ -38,5 +38,16 @@ router.get('/getcitydata',Controll.GetAvalibleCityData)
 router.get('/api/search-location', Controll.SearchLocation);
 
 
+//Category Add
+
+router.post('/addMainCategory', upload.single('image'), Controll.addMainCategory);
+router.post('/addSubCategory', upload.single('image'), Controll.addSubCategory);
+router.post('/addSubSubCategory', upload.single('image'), Controll.addSubSubCategory);
+
+//Category Get
+
+router.get('/getMainCategory',Controll.getMainCategory);
+
+
 
 module.exports = router;

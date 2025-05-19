@@ -311,32 +311,32 @@ const AddCityData = async (req, res) => {
       fullAddress,
       latitude,
       longitude,
-      createdAt: new Date() 
+      createdAt: new Date()
     };
     const result = await collection.insertOne(dataToInsert);
-    res.status(200).json({ message: "City added successfully", result:result });
+    res.status(200).json({ message: "City added successfully", result: result });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error adding city", error: err.message });
   }
 };
 
-const GetAvalibleCityData=async(req,res)=>{
-  try{
-     const db = await Connection(); 
+const GetAvalibleCityData = async (req, res) => {
+  try {
+    const db = await Connection();
     const collection = db.collection("AvalibleCity");
-    const result=await collection.find().toArray();
-    if(result){
+    const result = await collection.find().toArray();
+    if (result) {
       res.status(200).send({
-        result:result
+        result: result
       })
     }
-    else{
+    else {
       res.status(400).send('Not')
     }
   }
-  catch(err){
-   res.send(err)
+  catch (err) {
+    res.send(err)
   }
 }
 
@@ -365,7 +365,7 @@ const DeleteCityData = async (req, res) => {
 
 const fetch = require('node-fetch');
 
-const SearchLocation=async (req, res) => {
+const SearchLocation = async (req, res) => {
   const { query } = req.params;
 
   try {
@@ -389,6 +389,143 @@ const SearchLocation=async (req, res) => {
 };
 
 
+//Add Main Category
+
+const addMainCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const imageFile = req.file;  // multer ne req.file me image daal di
+
+    if (!name || !description || !imageFile) {
+      return res.status(400).json({ message: "Name, description and image are required" });
+    }
+
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const newCategory = {
+      name,
+      description,
+      image: imageFile.path,  // server pe stored image ka path save kar raha hu
+      subcat: []
+    };
+
+    const result = await collection.insertOne(newCategory);
+
+    res.status(201).json({ message: "Main Category added", id: result.insertedId });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+
+//Add Sub Category
+const addSubCategory = async (req, res) => {
+  try {
+    const { name, description, mainCategoryId } = req.body;
+    const imageFile = req.file;
+
+    if (!name || !description || !imageFile || !mainCategoryId) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const db = await Connection();
+    const mainCategoryCollection = db.collection("Categories");
+
+    // Subcategory object
+    const newSubCategory = {
+      _id: new ObjectId(),
+      name,
+      description,
+      image: imageFile.path,
+      subSubCat: []  // agar aage sub-sub categories rakhni hain
+    };
+
+    // Main category me subcategory add karni hai
+    const result = await mainCategoryCollection.updateOne(
+      { _id: new ObjectId(mainCategoryId) },
+      { $push: { subcat: newSubCategory } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Main category not found" });
+    }
+
+    res.status(201).json({ message: "Sub Category added", subCategoryId: newSubCategory._id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+//Add SubSub  Category  
+
+const addSubSubCategory = async (req, res) => {
+  try {
+    const { subCategoryId, name, description } = req.body;
+    const image = req.file.filename;
+
+    if (!subCategoryId || !name || !description || !image) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const newSubSubCat = {
+      _id: new ObjectId(),
+      name,
+      image,
+      description,
+    };
+
+    // Update: Find the document where subcat._id = subCategoryId and push to subsubcat
+    const result = await collection.updateOne(
+      { "subcat._id": new ObjectId(subCategoryId) },
+      { $push: { "subcat.$.subsubcat": newSubSubCat } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Sub category not found" });
+    }
+
+    res.status(201).json({ message: "Sub-Sub Category added", subSubCategory: newSubSubCat });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+const getMainCategory = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+    const data=await collection.find().toArray();
+    if(data){
+      res.status(200).send({
+        message:"Success",
+        result:data
+      })
+    }
+    else{
+      res.status(400).send({
+        message:'Something Wrong'
+      })
+    }
+  }
+  catch (err) {
+    res.status(401).send(err)
+  }
+}
+
+
+
 
 module.exports = {
   AddLocation,
@@ -404,5 +541,9 @@ module.exports = {
   AddCityData,
   GetAvalibleCityData,
   DeleteCityData,
-  SearchLocation
+  SearchLocation,
+  addMainCategory,
+  addSubCategory,
+  addSubSubCategory,
+  getMainCategory
 };
