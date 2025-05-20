@@ -393,7 +393,8 @@ const SearchLocation = async (req, res) => {
 
 const addMainCategory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, attribute } = req.body;
+
     const imageFile = req.file;  // multer ne req.file me image daal di
 
     if (!name || !description || !imageFile) {
@@ -406,8 +407,9 @@ const addMainCategory = async (req, res) => {
     const newCategory = {
       name,
       description,
-      image: imageFile.path,  // server pe stored image ka path save kar raha hu
-      subcat: []
+      image: imageFile.path,
+      subcat: [],
+      attribute: attribute ? JSON.parse(attribute) : []
     };
 
     const result = await collection.insertOne(newCategory);
@@ -425,7 +427,7 @@ const addMainCategory = async (req, res) => {
 //Add Sub Category
 const addSubCategory = async (req, res) => {
   try {
-    const { name, description, mainCategoryId } = req.body;
+    const { name, description, mainCategoryId, attribute } = req.body;
     const imageFile = req.file;
 
     if (!name || !description || !imageFile || !mainCategoryId) {
@@ -441,7 +443,8 @@ const addSubCategory = async (req, res) => {
       name,
       description,
       image: imageFile.path,
-      subSubCat: []  // agar aage sub-sub categories rakhni hain
+      subSubCat: [], // agar aage sub-sub categories rakhni hain
+      attribute: attribute ? JSON.parse(attribute) : []
     };
 
     // Main category me subcategory add karni hai
@@ -466,8 +469,8 @@ const addSubCategory = async (req, res) => {
 
 const addSubSubCategory = async (req, res) => {
   try {
-    const { subCategoryId, name, description } = req.body;
-    const image = req.file.filename;
+    const { subCategoryId, name, description, attribute } = req.body;
+    const imageFile = req.file;
 
     if (!subCategoryId || !name || !description || !image) {
       return res.status(400).json({ message: "All fields are required" });
@@ -479,8 +482,9 @@ const addSubSubCategory = async (req, res) => {
     const newSubSubCat = {
       _id: new ObjectId(),
       name,
-      image,
+      image:imageFile.path,
       description,
+      attribute: attribute ? JSON.parse(attribute) : []
     };
 
     // Update: Find the document where subcat._id = subCategoryId and push to subsubcat
@@ -506,16 +510,16 @@ const getMainCategory = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Categories");
-    const data=await collection.find().toArray();
-    if(data){
+    const data = await collection.find().toArray();
+    if (data) {
       res.status(200).send({
-        message:"Success",
-        result:data
+        message: "Success",
+        result: data
       })
     }
-    else{
+    else {
       res.status(400).send({
-        message:'Something Wrong'
+        message: 'Something Wrong'
       })
     }
   }
