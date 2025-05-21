@@ -482,7 +482,7 @@ const addSubSubCategory = async (req, res) => {
     const newSubSubCat = {
       _id: new ObjectId(),
       name,
-      image:imageFile.path,
+      image: imageFile.path,
       description,
       attribute: attribute ? JSON.parse(attribute) : []
     };
@@ -530,6 +530,51 @@ const getMainCategory = async (req, res) => {
 
 
 
+const PostTax = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Tax");
+    const {value}=req.body;
+    const result=await collection.insertOne({value})
+    if(result.acknowledged){
+      res.status(200).send({
+        result:result
+      })
+    }
+    else{
+      res.status(400).send({
+        message:'Something Wrong'
+      })
+    }
+  }
+  catch(err){
+    res.send(err)
+  }
+  
+}
+
+
+const GetTax=async(req,res)=>{
+  try{
+      const db = await Connection();
+    const collection = db.collection("Tax");
+    const result=await collection.find().toArray();
+    if(result){
+      res.status(200).send({
+        message:'Success',
+        result:result
+      })
+    }
+    else{
+      res.status(400).send({
+        message:"Something wrong"
+      })
+    }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
 
 module.exports = {
   AddLocation,
@@ -549,5 +594,7 @@ module.exports = {
   addMainCategory,
   addSubCategory,
   addSubSubCategory,
-  getMainCategory
+  getMainCategory,
+  PostTax,
+  GetTax
 };

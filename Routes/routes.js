@@ -47,6 +47,8 @@ router.post('/addSubSubCategory', upload.single('image'), Controll.addSubSubCate
 //Category Get
 
 router.get('/getMainCategory',Controll.getMainCategory);
+router.post('/postTax',Controll.PostTax)
+router.get('/getTax',Controll.GetTax)
 
 
 
