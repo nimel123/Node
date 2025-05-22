@@ -14,26 +14,33 @@ const AddLocation = async (req, res) => {
 
     const { city, address, latitude, longitude, range } = req.body;
 
-    // Validate all required fields
     if (!city || !address || !latitude || !longitude || !range) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Insert full location data
-    const result = await collection.insertOne({
-      city,
+    const zone = {
+      _id: new ObjectId(),
       address,
       latitude,
       longitude,
       range,
       createdAt: new Date()
-    });
+    };
 
-    if (result.acknowledged) {
+    // Try to update an existing city document by pushing new zone
+    const result = await collection.updateOne(
+      { city },
+      { $push: { zones: zone } },
+      { upsert: true } // If city doesn't exist, create it
+    );
+
+    if (result.modifiedCount > 0 || result.upsertedCount > 0) {
       res.status(200).json({
-        message: "Location saved successfully",
-        locationId: result.insertedId
+        message: "Zone saved successfully",
+        city,
       });
+    } else {
+      res.status(500).json({ message: "Failed to save the zone" });
     }
   } catch (err) {
     console.error("Error saving location:", err);
@@ -63,27 +70,35 @@ const GetLocation = async (req, res) => {
 };
 
 
-// Zone Delete API
-const Delete = async (req, res) => {
+
+
+
+const DeleteZoneById = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Locations");
-    const id = req.params.id;
-    if (!id) return res.status(400).json({ message: "Id parameter missing" });
-
-    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
-    if (result) {
-      return res.status(200).json({
-        message: "Zone Deleted Successfully",
-      });
-    } else {
-      return res.status(404).json({ message: 'Zone not found' });
+     const zoneId = req.params.id; 
+    if (!zoneId) {
+      return res.status(400).json({ message: "Zone ID missing" });
     }
+
+    const result = await collection.updateOne(
+      { "zones._id": new ObjectId(zoneId) },  
+      { $pull: { zones: { _id: new ObjectId(zoneId) } } }  
+    );
+
+    if (result.modifiedCount > 0) {
+      return res.status(200).json({ message: "Zone deleted successfully" });
+    } else {
+      return res.status(404).json({ message: "Zone not found or already deleted" });
+    }
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error deleting zone:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 
 // Add Categories (with file upload)
@@ -443,7 +458,7 @@ const addSubCategory = async (req, res) => {
       name,
       description,
       image: imageFile.path,
-      subSubCat: [], // agar aage sub-sub categories rakhni hain
+      subSubCat: [],
       attribute: attribute ? JSON.parse(attribute) : []
     };
 
@@ -534,44 +549,44 @@ const PostTax = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Tax");
-    const {value}=req.body;
-    const result=await collection.insertOne({value})
-    if(result.acknowledged){
+    const { value } = req.body;
+    const result = await collection.insertOne({ value })
+    if (result.acknowledged) {
       res.status(200).send({
-        result:result
+        result: result
       })
     }
-    else{
+    else {
       res.status(400).send({
-        message:'Something Wrong'
+        message: 'Something Wrong'
       })
     }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
-  
+
 }
 
 
-const GetTax=async(req,res)=>{
-  try{
-      const db = await Connection();
+const GetTax = async (req, res) => {
+  try {
+    const db = await Connection();
     const collection = db.collection("Tax");
-    const result=await collection.find().toArray();
-    if(result){
+    const result = await collection.find().toArray();
+    if (result) {
       res.status(200).send({
-        message:'Success',
-        result:result
+        message: 'Success',
+        result: result
       })
     }
-    else{
+    else {
       res.status(400).send({
-        message:"Something wrong"
+        message: "Something wrong"
       })
     }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
@@ -579,7 +594,6 @@ const GetTax=async(req,res)=>{
 module.exports = {
   AddLocation,
   GetLocation,
-  Delete,
   Categories,
   GetCategories,
   DeleteCategories,
@@ -596,5 +610,6 @@ module.exports = {
   addSubSubCategory,
   getMainCategory,
   PostTax,
-  GetTax
+  GetTax,
+  DeleteZoneById
 };

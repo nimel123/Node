@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.post('/addLocation',Controll.AddLocation)
 router.get('/getlocations',Controll.GetLocation)
-router.delete('/deletezone/:id',Controll.Delete)
+router.delete('/deletezone/:id',Controll.DeleteZoneById)
+
 
 // Storage setup
 const storage = multer.diskStorage({
