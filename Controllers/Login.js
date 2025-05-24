@@ -591,6 +591,52 @@ const GetTax = async (req, res) => {
   }
 }
 
+
+
+const AddVarient = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("attributes");
+
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const doc = await collection.findOne({ _id: new ObjectId(id) });
+
+    if (!doc) {
+      return res.status(404).json({ message: "Attribute not found" });
+    }
+
+    // 👇 Correct spelling used: varient
+    let varients = doc.varient || [];
+
+    const existingIndex = varients.findIndex(
+      (v) => v.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existingIndex !== -1) {
+      varients[existingIndex].name = name;
+    } else {
+      varients.push({ name, _id: new ObjectId() });
+    }
+
+    // 👇 Also use 'varient' when updating
+    await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { varient: varients } }
+    );
+
+    res.status(200).json({ message: "Varient updated successfully" });
+  } catch (err) {
+    console.error("Error updating varient:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   AddLocation,
   GetLocation,
@@ -611,5 +657,6 @@ module.exports = {
   getMainCategory,
   PostTax,
   GetTax,
-  DeleteZoneById
+  DeleteZoneById,
+  AddVarient
 };

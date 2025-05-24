@@ -12,10 +12,10 @@ router.delete('/deletezone/:id',Controll.DeleteZoneById)
 // Storage setup
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './upload'); // Save files in 'upload' folder
+    cb(null, './upload'); 
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname); // Unique file names
+    cb(null, Date.now() + '-' + file.originalname); 
   }
 });
 
@@ -50,6 +50,7 @@ router.post('/addSubSubCategory', upload.single('image'), Controll.addSubSubCate
 router.get('/getMainCategory',Controll.getMainCategory);
 router.post('/postTax',Controll.PostTax)
 router.get('/getTax',Controll.GetTax)
+router.put('/addvarient/:id',Controll.AddVarient)
 
 
 
