@@ -2,6 +2,7 @@ const express = require('express')
 const Controll=require('../Controllers/Login')
 const multer=require('multer')
 const router = express.Router();
+const upload1=require('../middleware/multer')
 
 
 router.post('/addLocation',Controll.AddLocation)
@@ -41,9 +42,9 @@ router.get('/api/search-location', Controll.SearchLocation);
 
 //Category Add
 
-router.post('/addMainCategory', upload.single('image'), Controll.addMainCategory);
-router.post('/addSubCategory', upload.single('image'), Controll.addSubCategory);
-router.post('/addSubSubCategory', upload.single('image'), Controll.addSubSubCategory);
+router.post('/addMainCategory',upload1, Controll.addMainCategory);
+router.post('/addSubCategory', upload1, Controll.addSubCategory);
+router.post('/addSubSubCategory', upload1, Controll.addSubSubCategory);
 
 //Category Get
 

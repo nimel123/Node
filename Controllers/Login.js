@@ -205,7 +205,7 @@ const DeleteCategories = async (req, res) => {
     if (!id) return res.status(400).json({ message: "Id parameter missing" });
 
     const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
-    if (result.value) {
+    if (result) {
       return res.status(200).json({
         message: "Category Deleted Successfully",
         id: id
@@ -410,9 +410,11 @@ const addMainCategory = async (req, res) => {
   try {
     const { name, description, attribute } = req.body;
 
-    const imageFile = req.file;  // multer ne req.file me image daal di
+    const image = req.files.image?.[0].path;  
 
-    if (!name || !description || !imageFile) {
+    if (!name || !description || !image) {
+      console.log(name,image,description);
+      
       return res.status(400).json({ message: "Name, description and image are required" });
     }
 
@@ -422,7 +424,7 @@ const addMainCategory = async (req, res) => {
     const newCategory = {
       name,
       description,
-      image: imageFile.path,
+      image,
       subcat: [],
       attribute: attribute ? JSON.parse(attribute) : []
     };
@@ -443,9 +445,9 @@ const addMainCategory = async (req, res) => {
 const addSubCategory = async (req, res) => {
   try {
     const { name, description, mainCategoryId, attribute } = req.body;
-    const imageFile = req.file;
+     const image = req.files.image?.[0].path;  
 
-    if (!name || !description || !imageFile || !mainCategoryId) {
+    if (!name || !description || !image || !mainCategoryId) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -457,7 +459,7 @@ const addSubCategory = async (req, res) => {
       _id: new ObjectId(),
       name,
       description,
-      image: imageFile.path,
+      image,
       subSubCat: [],
       attribute: attribute ? JSON.parse(attribute) : []
     };
@@ -485,7 +487,7 @@ const addSubCategory = async (req, res) => {
 const addSubSubCategory = async (req, res) => {
   try {
     const { subCategoryId, name, description, attribute } = req.body;
-    const imageFile = req.file;
+    const image = req.files.image?.[0].path;  
 
     if (!subCategoryId || !name || !description || !image) {
       return res.status(400).json({ message: "All fields are required" });
@@ -497,12 +499,12 @@ const addSubSubCategory = async (req, res) => {
     const newSubSubCat = {
       _id: new ObjectId(),
       name,
-      image: imageFile.path,
+      image,
       description,
       attribute: attribute ? JSON.parse(attribute) : []
     };
 
-    // Update: Find the document where subcat._id = subCategoryId and push to subsubcat
+  
     const result = await collection.updateOne(
       { "subcat._id": new ObjectId(subCategoryId) },
       { $push: { "subcat.$.subsubcat": newSubSubCat } }
