@@ -1,5 +1,5 @@
 const { default: Connection } = require('../Connection/ConnectDb');
-const { ObjectId } = require('mongodb');
+const { ObjectId, Collection } = require('mongodb');
 const citydata = require('./City');
 const jwt = require('jsonwebtoken');
 
@@ -77,14 +77,14 @@ const DeleteZoneById = async (req, res) => {
   try {
     const db = await Connection();
     const collection = db.collection("Locations");
-     const zoneId = req.params.id; 
+    const zoneId = req.params.id;
     if (!zoneId) {
       return res.status(400).json({ message: "Zone ID missing" });
     }
 
     const result = await collection.updateOne(
-      { "zones._id": new ObjectId(zoneId) },  
-      { $pull: { zones: { _id: new ObjectId(zoneId) } } }  
+      { "zones._id": new ObjectId(zoneId) },
+      { $pull: { zones: { _id: new ObjectId(zoneId) } } }
     );
 
     if (result.modifiedCount > 0) {
@@ -108,8 +108,8 @@ const Categories = async (req, res) => {
     const collection = db.collection("Categories");
 
     const files = req.files || {};
-    const categoryImage = files?.file?.[0]; // Main category image
-    const subImages = files?.subImages || []; // Subcategory images
+    const categoryImage = files?.file?.[0];
+    const subImages = files?.subImages || [];
 
     const { name, description, subcat, city, zones } = req.body;
 
@@ -410,11 +410,11 @@ const addMainCategory = async (req, res) => {
   try {
     const { name, description, attribute } = req.body;
 
-    const image = req.files.image?.[0].path;  
+    const image = req.files.image?.[0].path;
 
     if (!name || !description || !image) {
-      console.log(name,image,description);
-      
+      console.log(name, image, description);
+
       return res.status(400).json({ message: "Name, description and image are required" });
     }
 
@@ -445,7 +445,7 @@ const addMainCategory = async (req, res) => {
 const addSubCategory = async (req, res) => {
   try {
     const { name, description, mainCategoryId, attribute } = req.body;
-     const image = req.files.image?.[0].path;  
+    const image = req.files.image?.[0].path;
 
     if (!name || !description || !image || !mainCategoryId) {
       return res.status(400).json({ message: "All fields are required" });
@@ -487,7 +487,7 @@ const addSubCategory = async (req, res) => {
 const addSubSubCategory = async (req, res) => {
   try {
     const { subCategoryId, name, description, attribute } = req.body;
-    const image = req.files.image?.[0].path;  
+    const image = req.files.image?.[0].path;
 
     if (!subCategoryId || !name || !description || !image) {
       return res.status(400).json({ message: "All fields are required" });
@@ -504,7 +504,7 @@ const addSubSubCategory = async (req, res) => {
       attribute: attribute ? JSON.parse(attribute) : []
     };
 
-  
+
     const result = await collection.updateOne(
       { "subcat._id": new ObjectId(subCategoryId) },
       { $push: { "subcat.$.subsubcat": newSubSubCat } }
@@ -613,7 +613,7 @@ const AddVarient = async (req, res) => {
       return res.status(404).json({ message: "Attribute not found" });
     }
 
-    // 👇 Correct spelling used: varient
+
     let varients = doc.varient || [];
 
     const existingIndex = varients.findIndex(
@@ -626,7 +626,6 @@ const AddVarient = async (req, res) => {
       varients.push({ name, _id: new ObjectId() });
     }
 
-    // 👇 Also use 'varient' when updating
     await collection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { varient: varients } }
@@ -638,6 +637,383 @@ const AddVarient = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+
+const DeleteVarient = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("attributes");
+
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid variant ID format" });
+    }
+
+    const variantObjectId = new ObjectId(id);
+
+    // First, check if the variant exists inside any attribute
+    const attributeWithVariant = await collection.findOne({ "varient._id": variantObjectId });
+
+    if (!attributeWithVariant) {
+      return res.status(404).json({ message: "Variant not found in any attribute" });
+    }
+
+    // Pull the specific variant from the array
+    const result = await collection.findOneAndUpdate(
+      { _id: attributeWithVariant._id },
+      { $pull: { varient: { _id: variantObjectId } } },
+      { returnDocument: "after" }
+    );
+
+    if (result) {
+      res.status(200).json({
+        message: "Variant deleted successfully",
+        updatedAttribute: result.value,
+      });
+    } else {
+      res.status(500).json({ message: "Failed to retrieve updated attribute after deletion" });
+    }
+  } catch (err) {
+    console.error("Error deleting variant:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
+
+
+const BrandDelete=async(req,res)=>{
+  try{
+    const db=await Connection();
+    const collection= db.collection('brands');
+    const id=req.params.id;
+    if(!id){
+     return   res.status(400).send({
+        message:"Please Enter Brand Id in Param"
+      })
+    }
+    const result=await collection.findOneAndDelete({ _id: new ObjectId(id) });
+    if(result){
+      res.status(200).send({
+        message:"Brand Deleted Successfully",
+      })
+    }
+    else{
+      res.status(500).send({
+        message:"Something Wrong"
+      })
+    }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
+
+const BrandEdit=async(req,res)=>{
+  try{
+     const db=await Connection();
+     const collection=db.collection('brands');
+     const id=req.params.id;
+     const {brandName,description}=req.body;
+     const file=req.file;
+     if(!id){
+      return res.status(501).send({
+        message:"Invalid Id"
+      })
+     }
+     const result=await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+       {
+        $set: {
+          brandName: brandName,
+          brandLogo: file,
+          description: description,
+        },
+      },
+      { returnDocument: 'after' }
+     )
+     if(result){
+      res.status(200).send({
+        message:"Updated Success",
+        result:result
+      })
+     }
+  }
+  catch(err){
+    res.send(err);
+  }
+}
+
+
+
+const EditCategory = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const subcatId = req.params.id;
+    const { name, description } = req.body;
+    const image = req.files?.image?.[0]?.path;
+
+    // Step 1: Find parent category by subcat._id
+    const parentCategory = await collection.findOne({
+      "subcat._id": new ObjectId(subcatId)
+    });
+
+    if (!parentCategory) {
+      return res.status(404).json({ error: "Subcategory not found" });
+    }
+
+    // Prepare the update object
+    const updateFields = {
+      "subcat.$.name": name,
+      "subcat.$.description": description
+    };
+
+    // Only update image if a new image is uploaded
+    if (image) {
+      updateFields["subcat.$.image"] = image;
+    }
+
+    // Step 2: Update the subcategory
+    const result = await collection.updateOne(
+      {
+        _id: parentCategory._id,
+        "subcat._id": new ObjectId(subcatId)
+      },
+      {
+        $set: updateFields
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({ message: "Subcategory updated successfully" });
+    } else {
+      res.status(400).json({ error: "No changes were made" });
+    }
+  } catch (err) {
+    console.error("EditSubCategory Error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+const EditSubSubCategory = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const subsubcatId = req.params.id;
+    const { name, description } = req.body;
+    const image = req.files?.image?.[0]?.path;
+
+    // Step 1: Find the parent category and subcat containing the subsubcat
+    const category = await collection.findOne({
+      "subcat.subsubcat._id": new ObjectId(subsubcatId)
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: "Sub-subcategory not found" });
+    }
+
+    // Step 2: Find subcat index that contains the subsubcat
+    const subcatIndex = category.subcat.findIndex(sc =>
+      Array.isArray(sc.subsubcat) &&
+      sc.subsubcat.some(ssc => ssc._id.toString() === subsubcatId)
+    );
+
+    if (subcatIndex === -1) {
+      return res.status(404).json({ error: "Sub-subcategory not found in subcat" });
+    }
+
+    // Step 3: Find subsubcat index inside the subcat
+    const subsubcatIndex = category.subcat[subcatIndex].subsubcat.findIndex(
+      ssc => ssc._id.toString() === subsubcatId
+    );
+
+    if (subsubcatIndex === -1) {
+      return res.status(404).json({ error: "Sub-subcategory not found" });
+    }
+
+    // Step 4: Build update path
+    const updateFields = {
+      [`subcat.${subcatIndex}.subsubcat.${subsubcatIndex}.name`]: name,
+      [`subcat.${subcatIndex}.subsubcat.${subsubcatIndex}.description`]: description
+    };
+
+    if (image) {
+      updateFields[`subcat.${subcatIndex}.subsubcat.${subsubcatIndex}.image`] = image;
+    }
+
+    // Step 5: Update document
+    const result = await collection.updateOne(
+      { _id: category._id },
+      { $set: updateFields }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({ message: "Sub-subcategory updated successfully" });
+    } else {
+      res.status(400).json({ error: "No changes were made" });
+    }
+
+  } catch (err) {
+    console.error("EditSubSubCategory Error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
+const DeleteSubCategory = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const subcatId = req.params.id;
+
+    // Step 1: Find parent category containing this subcategory
+    const parentCategory = await collection.findOne({
+      "subcat._id": new ObjectId(subcatId)
+    });
+
+    if (!parentCategory) {
+      return res.status(404).json({ error: "Subcategory not found" });
+    }
+
+    // Step 2: Pull the subcategory from subcat array
+    const result = await collection.updateOne(
+      { _id: parentCategory._id },
+      {
+        $pull: {
+          subcat: { _id: new ObjectId(subcatId) }
+        }
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({ message: "Subcategory deleted successfully" });
+    } else {
+      res.status(400).json({ error: "Failed to delete subcategory" });
+    }
+  } catch (error) {
+    console.error("DeleteSubCategory Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
+const DeleteSubSubCategory = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const subsubcatId = req.params.id;
+
+    // Step 1: Find the category containing the subsubcat
+    const category = await collection.findOne({
+      "subcat.subsubcat._id": new ObjectId(subsubcatId)
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: "Sub-subcategory not found" });
+    }
+
+    // Step 2: Find the index of subcat containing this subsubcat
+    const subcatIndex = category.subcat.findIndex(sc =>
+      Array.isArray(sc.subsubcat) &&
+      sc.subsubcat.some(ssc => ssc._id.toString() === subsubcatId)
+    );
+
+    if (subcatIndex === -1) {
+      return res.status(404).json({ error: "Subcategory not found for sub-subcategory" });
+    }
+
+    // Step 3: Pull subsubcat from subcat.subsubcat array
+    const result = await collection.updateOne(
+      { _id: category._id },
+      {
+        $pull: {
+          [`subcat.${subcatIndex}.subsubcat`]: { _id: new ObjectId(subsubcatId) }
+        }
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({ message: "Sub-subcategory deleted successfully" });
+    } else {
+      res.status(400).json({ error: "Deletion failed" });
+    }
+
+  } catch (err) {
+    console.error("DeleteSubSubCategory Error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
+
+const GetSubCategories = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const categoryId = req.params.categoryId;
+
+    // Step 1: Find category by _id
+    const category = await collection.findOne({ _id: new ObjectId(categoryId) });
+
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    // Step 2: Return subcat array
+    res.status(200).json({ subcategories: category.subcat || [] });
+
+  } catch (err) {
+    console.error("GetSubCategories Error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+const GetSubSubCategories = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const subcatId = req.params.subcatId;
+
+    // Step 1: Find the category document that contains the given subcat _id
+    const category = await collection.findOne({
+      "subcat._id": new ObjectId(subcatId)
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: "SubCategory not found" });
+    }
+
+    // Step 2: Find that specific subcategory inside the array
+    const subcategory = category.subcat.find(
+      (item) => item._id.toString() === subcatId
+    );
+
+    if (!subcategory) {
+      return res.status(404).json({ error: "SubCategory not found in category" });
+    }
+
+    // Step 3: Return subsubcat array
+    res.status(200).json({ subsubcategories: subcategory.subsubcat || [] });
+
+  } catch (err) {
+    console.error("GetSubSubCategories Error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 
 module.exports = {
   AddLocation,
@@ -660,5 +1036,14 @@ module.exports = {
   PostTax,
   GetTax,
   DeleteZoneById,
-  AddVarient
+  AddVarient,
+  DeleteVarient,
+  BrandDelete,
+  BrandEdit,
+  EditCategory,
+  EditSubSubCategory,
+  DeleteSubCategory,
+  DeleteSubSubCategory,
+  GetSubCategories,
+  GetSubSubCategories 
 };

@@ -2,7 +2,8 @@ const express = require('express')
 const Controll=require('../Controllers/Login')
 const multer=require('multer')
 const router = express.Router();
-const upload1=require('../middleware/multer')
+const upload1=require('../middleware/multer');
+
 
 
 router.post('/addLocation',Controll.AddLocation)
@@ -30,7 +31,14 @@ router.post(
   Controll.Categories
 );
 router.get('/getCategories', Controll.GetCategories);
+router.get('/getsubcat/:categoryId',Controll.GetSubCategories);
+router.get('/getsubsubcat/:subcatId',Controll.GetSubSubCategories);
+
 router.delete('/delete/:id',Controll.DeleteCategories)
+router.delete('/delete-subcategory/:id', Controll.DeleteSubCategory);
+router.delete('/deletesubsubcat/:id', Controll.DeleteSubSubCategory);
+
+
 router.delete('/deleteCity/:id',Controll.DeleteCityData)
 router.get('/addcitydata',Controll.CityData)
 router.post('/login',Controll.Login)
@@ -52,6 +60,11 @@ router.get('/getMainCategory',Controll.getMainCategory);
 router.post('/postTax',Controll.PostTax)
 router.get('/getTax',Controll.GetTax)
 router.put('/addvarient/:id',Controll.AddVarient)
+router.delete('/deleteVarient/:id',Controll.DeleteVarient)
+router.delete('/deleteBrand/:id',Controll.BrandDelete)
+router.put('/brandEdit/:id',Controll.BrandEdit)
+router.put('/edit-category/:id',upload1,Controll.EditCategory)
+router.put('/editsubsub/:id',upload1,Controll.EditSubSubCategory)
 
 
 
