@@ -65,6 +65,9 @@ router.delete('/deleteBrand/:id',Controll.BrandDelete)
 router.put('/brandEdit/:id',Controll.BrandEdit)
 router.put('/edit-category/:id',upload1,Controll.EditCategory)
 router.put('/editsubsub/:id',upload1,Controll.EditSubSubCategory)
+router.put('/update-attribute/:id',Controll.UpdateAttribute)
+router.delete('/bannerdelete/:id',Controll.BannerDelete)
+
 
 
 

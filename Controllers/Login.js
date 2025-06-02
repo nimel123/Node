@@ -12,15 +12,16 @@ const AddLocation = async (req, res) => {
     const db = await Connection();
     const collection = db.collection("Locations");
 
-    const { city, address, latitude, longitude, range } = req.body;
+    const { city, address,zoneTitle, latitude, longitude, range } = req.body;
 
-    if (!city || !address || !latitude || !longitude || !range) {
+    if (!city || !address || !latitude || !longitude || !range || !zoneTitle) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
     const zone = {
       _id: new ObjectId(),
       address,
+      zoneTitle,
       latitude,
       longitude,
       range,
@@ -1005,7 +1006,6 @@ const GetSubSubCategories = async (req, res) => {
       return res.status(404).json({ error: "SubCategory not found in category" });
     }
 
-    // Step 3: Return subsubcat array
     res.status(200).json({ subsubcategories: subcategory.subsubcat || [] });
 
   } catch (err) {
@@ -1013,6 +1013,53 @@ const GetSubSubCategories = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+const UpdateAttribute=async(req,res)=>{
+  try{
+      const db=await Connection();
+      const collection=db.collection('attributes')
+      const {Attribute_name}=req.body;
+      const id=req.params.id;
+      const result=await collection.findOneAndUpdate({_id:new ObjectId(id)},
+      {
+        $set:{Attribute_name: Attribute_name}
+      }
+    )
+    if(result){
+      res.status(200).send({
+        message:"Success",
+        result:result
+      })
+    }
+
+  }
+  catch(err){
+    res.send(err);
+    
+  }
+}
+
+
+const BannerDelete=async(req,res)=>{
+  try{
+     const db=await Connection()
+     const collection=db.collection('banners');
+     const id=req.params.id;
+     const result=await collection.findOneAndDelete({_id:new ObjectId(id)});
+     if(result){
+      res.status(200).send({
+        message:"Banner Deleted Successfully",
+        result:result
+      })
+     }
+     else{
+      res.send('Banner Not Found')
+     }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
 
 
 module.exports = {
@@ -1045,5 +1092,7 @@ module.exports = {
   DeleteSubCategory,
   DeleteSubSubCategory,
   GetSubCategories,
-  GetSubSubCategories 
+  GetSubSubCategories ,
+  UpdateAttribute,
+  BannerDelete
 };
