@@ -1061,6 +1061,26 @@ const BannerDelete=async(req,res)=>{
   }
 }
 
+const GetAllProducts=async(req,res)=>{
+  try{
+     const db=await Connection();
+     const collection=db.collection('products');
+     const result=await collection.find().toArray();
+     if(result){
+      res.status(200).send({
+        message:"Success",
+        result:result
+      })
+     }
+     else{
+      res.status(400).send('Error')
+     }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
+
 
 module.exports = {
   AddLocation,
@@ -1094,5 +1114,6 @@ module.exports = {
   GetSubCategories,
   GetSubSubCategories ,
   UpdateAttribute,
-  BannerDelete
+  BannerDelete,
+  GetAllProducts
 };
