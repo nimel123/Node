@@ -12,7 +12,7 @@ const AddLocation = async (req, res) => {
     const db = await Connection();
     const collection = db.collection("Locations");
 
-    const { city, address,zoneTitle, latitude, longitude, range } = req.body;
+    const { city, address, zoneTitle, latitude, longitude, range } = req.body;
 
     if (!city || !address || !latitude || !longitude || !range || !zoneTitle) {
       return res.status(400).json({ message: 'All fields are required' });
@@ -684,48 +684,48 @@ const DeleteVarient = async (req, res) => {
 };
 
 
-const BrandDelete=async(req,res)=>{
-  try{
-    const db=await Connection();
-    const collection= db.collection('brands');
-    const id=req.params.id;
-    if(!id){
-     return   res.status(400).send({
-        message:"Please Enter Brand Id in Param"
+const BrandDelete = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('brands');
+    const id = req.params.id;
+    if (!id) {
+      return res.status(400).send({
+        message: "Please Enter Brand Id in Param"
       })
     }
-    const result=await collection.findOneAndDelete({ _id: new ObjectId(id) });
-    if(result){
+    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
+    if (result) {
       res.status(200).send({
-        message:"Brand Deleted Successfully",
+        message: "Brand Deleted Successfully",
       })
     }
-    else{
+    else {
       res.status(500).send({
-        message:"Something Wrong"
+        message: "Something Wrong"
       })
     }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
 
-const BrandEdit=async(req,res)=>{
-  try{
-     const db=await Connection();
-     const collection=db.collection('brands');
-     const id=req.params.id;
-     const {brandName,description}=req.body;
-     const file=req.file;
-     if(!id){
+const BrandEdit = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('brands');
+    const id = req.params.id;
+    const { brandName, description } = req.body;
+    const file = req.file;
+    if (!id) {
       return res.status(501).send({
-        message:"Invalid Id"
+        message: "Invalid Id"
       })
-     }
-     const result=await collection.findOneAndUpdate(
+    }
+    const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(id) },
-       {
+      {
         $set: {
           brandName: brandName,
           brandLogo: file,
@@ -733,15 +733,15 @@ const BrandEdit=async(req,res)=>{
         },
       },
       { returnDocument: 'after' }
-     )
-     if(result){
+    )
+    if (result) {
       res.status(200).send({
-        message:"Updated Success",
-        result:result
+        message: "Updated Success",
+        result: result
       })
-     }
+    }
   }
-  catch(err){
+  catch (err) {
     res.send(err);
   }
 }
@@ -1014,73 +1014,120 @@ const GetSubSubCategories = async (req, res) => {
   }
 };
 
-const UpdateAttribute=async(req,res)=>{
-  try{
-      const db=await Connection();
-      const collection=db.collection('attributes')
-      const {Attribute_name}=req.body;
-      const id=req.params.id;
-      const result=await collection.findOneAndUpdate({_id:new ObjectId(id)},
+const UpdateAttribute = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('attributes')
+    const { Attribute_name } = req.body;
+    const id = req.params.id;
+    const result = await collection.findOneAndUpdate({ _id: new ObjectId(id) },
       {
-        $set:{Attribute_name: Attribute_name}
+        $set: { Attribute_name: Attribute_name }
       }
     )
-    if(result){
+    if (result) {
       res.status(200).send({
-        message:"Success",
-        result:result
+        message: "Success",
+        result: result
       })
     }
 
   }
-  catch(err){
+  catch (err) {
     res.send(err);
-    
+
   }
 }
 
 
-const BannerDelete=async(req,res)=>{
-  try{
-     const db=await Connection()
-     const collection=db.collection('banners');
-     const id=req.params.id;
-     const result=await collection.findOneAndDelete({_id:new ObjectId(id)});
-     if(result){
+const BannerDelete = async (req, res) => {
+  try {
+    const db = await Connection()
+    const collection = db.collection('banners');
+    const id = req.params.id;
+    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
+    if (result) {
       res.status(200).send({
-        message:"Banner Deleted Successfully",
-        result:result
+        message: "Banner Deleted Successfully",
+        result: result
       })
-     }
-     else{
+    }
+    else {
       res.send('Banner Not Found')
-     }
+    }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
 
-const GetAllProducts=async(req,res)=>{
-  try{
-     const db=await Connection();
-     const collection=db.collection('products');
-     const result=await collection.find().toArray();
-     if(result){
+const GetAllProducts = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('products');
+    const result = await collection.find().toArray();
+    if (result) {
       res.status(200).send({
-        message:"Success",
-        result:result
+        message: "Success",
+        result: result
       })
-     }
-     else{
+    }
+    else {
       res.status(400).send('Error')
-     }
+    }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
 
+
+const handleDelteTax = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('Tax');
+    const id = req.params.id
+    const response = await collection.findOneAndDelete({ _id: new ObjectId(id) })
+    if (response) {
+      res.status(200).send({
+        message: "Success"
+      })
+    }
+    else {
+      res.status(500).send('Tax Not Found')
+    }
+  }
+  catch (err) {
+    res.send(err)
+  }
+}
+
+
+const EditTax = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('Tax');
+    const id = req.params.id;
+    const value=req.body;
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: value },
+    )
+    if(result){
+      res.status(200).send({
+        message:"Success"
+      })
+    }
+    else{
+      res.status(400).send({
+        message:"error"
+      })
+    }
+  }
+  catch (err) {
+    res.send(err)
+  }
+}
 
 module.exports = {
   AddLocation,
@@ -1112,8 +1159,10 @@ module.exports = {
   DeleteSubCategory,
   DeleteSubSubCategory,
   GetSubCategories,
-  GetSubSubCategories ,
+  GetSubSubCategories,
   UpdateAttribute,
   BannerDelete,
-  GetAllProducts
+  GetAllProducts,
+  handleDelteTax,
+  EditTax
 };

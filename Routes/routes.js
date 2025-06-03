@@ -68,6 +68,8 @@ router.put('/editsubsub/:id',upload1,Controll.EditSubSubCategory)
 router.put('/update-attribute/:id',Controll.UpdateAttribute)
 router.delete('/bannerdelete/:id',Controll.BannerDelete)
 router.get('/getAllproducts',Controll.GetAllProducts)
+router.delete('/deleteTax/:id',Controll.handleDelteTax)
+router.put('/edit-tax/:id',Controll.EditTax)
 
 
 
