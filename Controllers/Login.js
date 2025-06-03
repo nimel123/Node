@@ -26,6 +26,7 @@ const AddLocation = async (req, res) => {
       longitude,
       range,
       status:true,
+      cashOnDelivery:false,
       createdAt: new Date()
     };
 
@@ -429,6 +430,7 @@ const addMainCategory = async (req, res) => {
       description,
       image,
       subcat: [],
+      status:true,
       attribute: attribute ? JSON.parse(attribute) : []
     };
 
@@ -463,6 +465,7 @@ const addSubCategory = async (req, res) => {
       name,
       description,
       image,
+      status:true,
       subSubCat: [],
       attribute: attribute ? JSON.parse(attribute) : []
     };
@@ -504,6 +507,7 @@ const addSubSubCategory = async (req, res) => {
       name,
       image,
       description,
+      status:true,
       attribute: attribute ? JSON.parse(attribute) : []
     };
 
