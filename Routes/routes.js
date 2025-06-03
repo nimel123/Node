@@ -70,6 +70,7 @@ router.delete('/bannerdelete/:id',Controll.BannerDelete)
 router.get('/getAllproducts',Controll.GetAllProducts)
 router.delete('/deleteTax/:id',Controll.handleDelteTax)
 router.put('/edit-tax/:id',Controll.EditTax)
+router.put('/edit-unit/:id',Controll.EditUnit)
 
 
 

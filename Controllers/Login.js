@@ -1135,6 +1135,32 @@ const EditTax = async (req, res) => {
   }
 }
 
+const EditUnit=async(req,res)=>{
+  try{
+     const db=await Connection();
+     const collection=db.collection('units')
+     const id=req.params.id;
+     const {unitname}=req.body;
+     const result=await collection.findOneAndUpdate(
+      {_id:new ObjectId(id)},
+      {
+        $set:{unitname:unitname}
+      }
+     )
+     if(result){
+      res.status(200).send({
+        message:'success'
+      })
+     }
+     else{
+      res.send('Error')
+     }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
+
 module.exports = {
   AddLocation,
   GetLocation,
@@ -1170,5 +1196,6 @@ module.exports = {
   BannerDelete,
   GetAllProducts,
   handleDelteTax,
-  EditTax
+  EditTax,
+  EditUnit
 };
