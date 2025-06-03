@@ -25,6 +25,7 @@ const AddLocation = async (req, res) => {
       latitude,
       longitude,
       range,
+      status:true,
       createdAt: new Date()
     };
 
@@ -221,7 +222,7 @@ const DeleteCategories = async (req, res) => {
 };
 
 
-// City API - Insert bulk city data
+
 const CityData = async (req, res) => {
   try {
     const db = await Connection();
@@ -316,7 +317,7 @@ const VeryfyOtp = async (req, res) => {
 
 const AddCityData = async (req, res) => {
   try {
-    const db = await Connection(); // your MongoDB connection function
+    const db = await Connection(); 
     const { city, state, fullAddress, latitude, longitude } = req.body;
 
     const collection = db.collection("AvalibleCity");
@@ -327,6 +328,7 @@ const AddCityData = async (req, res) => {
       fullAddress,
       latitude,
       longitude,
+      status: true,
       createdAt: new Date()
     };
     const result = await collection.insertOne(dataToInsert);
