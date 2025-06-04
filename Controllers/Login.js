@@ -1161,6 +1161,48 @@ const EditUnit=async(req,res)=>{
   }
 }
 
+
+
+const ProductToggleUpdate = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('products');
+
+    const id = req.params.id; 
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+ 
+    const product = await collection.findOne({ _id: new ObjectId(id) });
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const updatedStatus = !product.status;
+
+
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: updatedStatus } }
+    );
+
+    if (result.modifiedCount === 1) {
+      return res.status(200).json({
+        message: `Product status updated successfully.`,
+        status: updatedStatus
+      });
+    } else {
+      return res.status(500).json({ message: 'Failed to update product status.' });
+    }
+  } catch (err) {
+    console.error('Error updating product status:', err.message);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
+  }
+};
+
+
 module.exports = {
   AddLocation,
   GetLocation,
@@ -1197,5 +1239,6 @@ module.exports = {
   GetAllProducts,
   handleDelteTax,
   EditTax,
-  EditUnit
+  EditUnit,
+  ProductToggleUpdate
 };
