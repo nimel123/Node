@@ -754,6 +754,46 @@ const BrandEdit = async (req, res) => {
 
 
 
+const EditMainCategory=async(req,res)=>{
+  try{
+    const db=await Connection();
+    const collection = db.collection("Categories");
+    const id=req.params.id;
+    const {name,description}=req.body;
+    const image = req.files?.image?.[0]?.path;
+    if(!id){
+     return res.status(401).send({
+        message:"Please Check ID"
+      })
+    }
+
+     const existing = await collection.findOne({ _id: new ObjectId(id) });
+    if (!existing) {
+      return res.status(404).send({ message: "Category not found" });
+    }
+
+    const updateFields = {
+      name: name || existing.name,
+      description: description || existing.description,
+      image: image || existing.image, 
+    };
+    
+     const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateFields },
+    );
+
+    if(result){
+      res.status(200).send(
+        {message:"Success", result:result}
+      )
+    }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
+
 const EditCategory = async (req, res) => {
   try {
     const db = await Connection();
@@ -1228,6 +1268,7 @@ module.exports = {
   DeleteVarient,
   BrandDelete,
   BrandEdit,
+  EditMainCategory,
   EditCategory,
   EditSubSubCategory,
   DeleteSubCategory,
