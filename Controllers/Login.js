@@ -25,8 +25,8 @@ const AddLocation = async (req, res) => {
       latitude,
       longitude,
       range,
-      status:true,
-      cashOnDelivery:false,
+      status: true,
+      cashOnDelivery: false,
       createdAt: new Date()
     };
 
@@ -318,7 +318,7 @@ const VeryfyOtp = async (req, res) => {
 
 const AddCityData = async (req, res) => {
   try {
-    const db = await Connection(); 
+    const db = await Connection();
     const { city, state, fullAddress, latitude, longitude } = req.body;
 
     const collection = db.collection("AvalibleCity");
@@ -383,6 +383,7 @@ const DeleteCityData = async (req, res) => {
 
 
 const fetch = require('node-fetch');
+const { object } = require('prop-types');
 
 const SearchLocation = async (req, res) => {
   const { query } = req.params;
@@ -412,7 +413,7 @@ const SearchLocation = async (req, res) => {
 
 const addMainCategory = async (req, res) => {
   try {
-    const { name, description, attribute } = req.body;
+    const { name, description, attribute, filter } = req.body;
 
     const image = req.files.image?.[0].path;
 
@@ -430,8 +431,9 @@ const addMainCategory = async (req, res) => {
       description,
       image,
       subcat: [],
-      status:true,
-      attribute: attribute ? JSON.parse(attribute) : []
+      status: true,
+      attribute: attribute ? JSON.parse(attribute) : [],
+      filter: filter ? JSON.parse(filter) : []
     };
 
     const result = await collection.insertOne(newCategory);
@@ -449,7 +451,7 @@ const addMainCategory = async (req, res) => {
 //Add Sub Category
 const addSubCategory = async (req, res) => {
   try {
-    const { name, description, mainCategoryId, attribute } = req.body;
+    const { name, description, mainCategoryId, attribute, filter } = req.body;
     const image = req.files.image?.[0].path;
 
     if (!name || !description || !image || !mainCategoryId) {
@@ -465,9 +467,10 @@ const addSubCategory = async (req, res) => {
       name,
       description,
       image,
-      status:true,
+      status: true,
       subSubCat: [],
-      attribute: attribute ? JSON.parse(attribute) : []
+      attribute: attribute ? JSON.parse(attribute) : [],
+      filter: filter ? JSON.parse(filter) : []
     };
 
     // Main category me subcategory add karni hai
@@ -492,7 +495,7 @@ const addSubCategory = async (req, res) => {
 
 const addSubSubCategory = async (req, res) => {
   try {
-    const { subCategoryId, name, description, attribute } = req.body;
+    const { subCategoryId, name, description, attribute, filter } = req.body;
     const image = req.files.image?.[0].path;
 
     if (!subCategoryId || !name || !description || !image) {
@@ -507,8 +510,9 @@ const addSubSubCategory = async (req, res) => {
       name,
       image,
       description,
-      status:true,
-      attribute: attribute ? JSON.parse(attribute) : []
+      status: true,
+      attribute: attribute ? JSON.parse(attribute) : [],
+      filter: filter ? JSON.parse(filter) : []
     };
 
 
@@ -754,20 +758,20 @@ const BrandEdit = async (req, res) => {
 
 
 
-const EditMainCategory=async(req,res)=>{
-  try{
-    const db=await Connection();
+const EditMainCategory = async (req, res) => {
+  try {
+    const db = await Connection();
     const collection = db.collection("Categories");
-    const id=req.params.id;
-    const {name,description}=req.body;
+    const id = req.params.id;
+    const { name, description } = req.body;
     const image = req.files?.image?.[0]?.path;
-    if(!id){
-     return res.status(401).send({
-        message:"Please Check ID"
+    if (!id) {
+      return res.status(401).send({
+        message: "Please Check ID"
       })
     }
 
-     const existing = await collection.findOne({ _id: new ObjectId(id) });
+    const existing = await collection.findOne({ _id: new ObjectId(id) });
     if (!existing) {
       return res.status(404).send({ message: "Category not found" });
     }
@@ -775,21 +779,21 @@ const EditMainCategory=async(req,res)=>{
     const updateFields = {
       name: name || existing.name,
       description: description || existing.description,
-      image: image || existing.image, 
+      image: image || existing.image,
     };
-    
-     const result = await collection.findOneAndUpdate(
+
+    const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: updateFields },
     );
 
-    if(result){
+    if (result) {
       res.status(200).send(
-        {message:"Success", result:result}
+        { message: "Success", result: result }
       )
     }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
@@ -1154,19 +1158,19 @@ const EditTax = async (req, res) => {
     const db = await Connection();
     const collection = db.collection('Tax');
     const id = req.params.id;
-    const value=req.body;
+    const value = req.body;
     const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: value },
     )
-    if(result){
+    if (result) {
       res.status(200).send({
-        message:"Success"
+        message: "Success"
       })
     }
-    else{
+    else {
       res.status(400).send({
-        message:"error"
+        message: "error"
       })
     }
   }
@@ -1175,28 +1179,28 @@ const EditTax = async (req, res) => {
   }
 }
 
-const EditUnit=async(req,res)=>{
-  try{
-     const db=await Connection();
-     const collection=db.collection('units')
-     const id=req.params.id;
-     const {unitname}=req.body;
-     const result=await collection.findOneAndUpdate(
-      {_id:new ObjectId(id)},
+const EditUnit = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('units')
+    const id = req.params.id;
+    const { unitname } = req.body;
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
       {
-        $set:{unitname:unitname}
+        $set: { unitname: unitname }
       }
-     )
-     if(result){
+    )
+    if (result) {
       res.status(200).send({
-        message:'success'
+        message: 'success'
       })
-     }
-     else{
+    }
+    else {
       res.send('Error')
-     }
+    }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
@@ -1208,12 +1212,12 @@ const ProductToggleUpdate = async (req, res) => {
     const db = await Connection();
     const collection = db.collection('products');
 
-    const id = req.params.id; 
+    const id = req.params.id;
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid product ID' });
     }
 
- 
+
     const product = await collection.findOne({ _id: new ObjectId(id) });
 
     if (!product) {
@@ -1283,3 +1287,6 @@ module.exports = {
   EditUnit,
   ProductToggleUpdate
 };
+
+
+
