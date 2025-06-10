@@ -1,5 +1,5 @@
 const { default: Connection } = require('../Connection/ConnectDb');
-const { ObjectId, Collection } = require('mongodb');
+const { ObjectId, } = require('mongodb');
 const citydata = require('./City');
 const jwt = require('jsonwebtoken');
 
@@ -383,7 +383,6 @@ const DeleteCityData = async (req, res) => {
 
 
 const fetch = require('node-fetch');
-const { object } = require('prop-types');
 
 const SearchLocation = async (req, res) => {
   const { query } = req.params;
