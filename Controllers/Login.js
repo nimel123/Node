@@ -271,7 +271,7 @@ const Login = async (req, res) => {
     if (result) {
       const token = jwt.sign({
         data: result._id,
-      }, jwtSecretKey, { expiresIn: '24h' });
+      }, jwtSecretKey, );
 
       res.status(200).json({
         data: result,
