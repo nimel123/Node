@@ -271,7 +271,7 @@ const Login = async (req, res) => {
     if (result) {
       const token = jwt.sign({
         data: result._id,
-      }, jwtSecretKey, { expiresIn: '3h' });
+      }, jwtSecretKey, { expiresIn: '24h' });
 
       res.status(200).json({
         data: result,
@@ -671,7 +671,7 @@ const DeleteVarient = async (req, res) => {
       return res.status(404).json({ message: "Variant not found in any attribute" });
     }
 
-    // Pull the specific variant from the array
+ 
     const result = await collection.findOneAndUpdate(
       { _id: attributeWithVariant._id },
       { $pull: { varient: { _id: variantObjectId } } },
