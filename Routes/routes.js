@@ -53,6 +53,8 @@ router.get('/api/search-location', Controll.SearchLocation);
 router.post('/addMainCategory',upload1, Controll.addMainCategory);
 router.post('/addSubCategory', upload1, Controll.addSubCategory);
 router.post('/addSubSubCategory', upload1, Controll.addSubSubCategory);
+router.put('/addfilterincategory/:id',Controll.addFilterNameToCategory)
+router.put('/addfiltervalue/:id',Controll.addFilterValueToCategoryFilter)
 
 //Category Get
 

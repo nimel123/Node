@@ -490,7 +490,7 @@ const addSubCategory = async (req, res) => {
     let parsedFilters = [];
 
     if (filter) {
-      const rawFilters = JSON.parse(filter); // array of { _id }
+      const rawFilters = JSON.parse(filter); 
 
       for (const f of rawFilters) {
         const filterId = new ObjectId(f._id);
@@ -527,7 +527,7 @@ const addSubCategory = async (req, res) => {
       filter: parsedFilters
     };
 
-    // Main category me subcategory add karni hai
+    
     const result = await mainCategoryCollection.updateOne(
       { _id: new ObjectId(mainCategoryId) },
       { $push: { subcat: newSubCategory } }
@@ -615,6 +615,112 @@ const addSubSubCategory = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+
+
+const addFilterNameToCategory = async (req, res) => {
+  const {  Filter_name } = req.body;
+  const category_id=req.params.id;
+
+  if (!Filter_name || !category_id) {
+    return res.status(400).json({ error: "category_id and filter_name are required" });
+  }
+
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const category = await collection.findOne({ _id: new ObjectId(category_id) });
+
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
+    }
+
+    const filterArray = Array.isArray(category.filter) ? category.filter : [];
+    const exists = filterArray.some(
+      (f) => f.Filter_name.toLowerCase() === Filter_name.toLowerCase()
+    );
+
+    if (exists) {
+      return res.status(400).json({ error: "Filter already exists in category" });
+    }
+
+    const newFilter = {
+      _id: new ObjectId(),
+      Filter_name: Filter_name,
+      selected: []
+    };
+
+    await collection.updateOne(
+      { _id: new ObjectId(category_id) },
+      { $push: { filter: newFilter } }
+    );
+
+    res.status(200).json({ message: "Filter name added successfully", newFilter });
+
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+const addFilterValueToCategoryFilter = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection("Categories");
+
+    const  category_id  = req.params.id;
+    const { filter_id, name } = req.body;
+
+    if (!name || !filter_id) {
+      return res.status(400).json({ error: "Filter ID and name are required." });
+    }
+    const category = await collection.findOne({ _id: new ObjectId(category_id) });
+    if (!category) {
+      return res.status(404).json({ error: "Category not found." });
+    }
+
+    // Ensure filter array exists
+    if (!Array.isArray(category.filter)) {
+      return res.status(400).json({ error: "No filters exist in this category." });
+    }
+
+    // Find target filter
+    const targetFilter = category.filter.find(f => f._id.toString() === filter_id);
+
+    if (!targetFilter) {
+      return res.status(404).json({ error: "Filter not found in this category." });
+    }
+
+    // Prevent duplicate names
+    const alreadyExists = targetFilter.selected?.some(val => val.name?.toLowerCase() === name.toLowerCase());
+    if (alreadyExists) {
+      return res.status(400).json({ error: "This value already exists in the filter." });
+    }
+
+    // Add selected value
+    const updatedSelected = [
+      ...(targetFilter.selected || []),
+      { _id: new ObjectId(), name: name }
+    ];
+
+    // Update in DB using positional operator
+    await collection.updateOne(
+      { _id: new ObjectId(category_id), "filter._id": new ObjectId(filter_id) },
+      { $set: { "filter.$.selected": updatedSelected } }
+    );
+
+    res.status(200).json({ message: "Filter value added successfully." });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 
 const getMainCategory = async (req, res) => {
@@ -1395,7 +1501,9 @@ module.exports = {
   EditTax,
   EditUnit,
   ProductToggleUpdate,
-  GetFilter
+  GetFilter,
+  addFilterNameToCategory,
+  addFilterValueToCategoryFilter
 };
 
 
