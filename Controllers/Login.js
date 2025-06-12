@@ -198,6 +198,26 @@ const GetCategories = async (req, res) => {
   }
 };
 
+const GetCategoryById = async (req, res) => {
+  try {
+    const db = await Connection()
+    const collection = db.collection('Categories')
+    const id = req.params.id;
+    const response = await collection.findOne({ _id: new ObjectId(id) })
+    if (response) {
+      res.status(200).send({
+        message: 'Success',
+        response: response
+      })
+    }
+    else {
+      res.status(400).send("Somthing wrong")
+    }
+  }
+  catch (err) {
+    console.log(err);
+  }
+}
 
 // Delete Categories API
 const DeleteCategories = async (req, res) => {
@@ -271,7 +291,7 @@ const Login = async (req, res) => {
     if (result) {
       const token = jwt.sign({
         data: result._id,
-      }, jwtSecretKey, );
+      }, jwtSecretKey,);
 
       res.status(200).json({
         data: result,
@@ -490,7 +510,7 @@ const addSubCategory = async (req, res) => {
     let parsedFilters = [];
 
     if (filter) {
-      const rawFilters = JSON.parse(filter); 
+      const rawFilters = JSON.parse(filter);
 
       for (const f of rawFilters) {
         const filterId = new ObjectId(f._id);
@@ -527,7 +547,7 @@ const addSubCategory = async (req, res) => {
       filter: parsedFilters
     };
 
-    
+
     const result = await mainCategoryCollection.updateOne(
       { _id: new ObjectId(mainCategoryId) },
       { $push: { subcat: newSubCategory } }
@@ -621,8 +641,8 @@ const addSubSubCategory = async (req, res) => {
 
 
 const addFilterNameToCategory = async (req, res) => {
-  const {  Filter_name } = req.body;
-  const category_id=req.params.id;
+  const { Filter_name } = req.body;
+  const category_id = req.params.id;
 
   if (!Filter_name || !category_id) {
     return res.status(400).json({ error: "category_id and filter_name are required" });
@@ -672,7 +692,7 @@ const addFilterValueToCategoryFilter = async (req, res) => {
     const db = await Connection();
     const collection = db.collection("Categories");
 
-    const  category_id  = req.params.id;
+    const category_id = req.params.id;
     const { filter_id, name } = req.body;
 
     if (!name || !filter_id) {
@@ -861,7 +881,7 @@ const DeleteVarient = async (req, res) => {
       return res.status(404).json({ message: "Variant not found in any attribute" });
     }
 
- 
+
     const result = await collection.findOneAndUpdate(
       { _id: attributeWithVariant._id },
       { $pull: { varient: { _id: variantObjectId } } },
@@ -947,45 +967,103 @@ const BrandEdit = async (req, res) => {
 
 
 
+
+
 const EditMainCategory = async (req, res) => {
   try {
     const db = await Connection();
-    const collection = db.collection("Categories");
+    const Categories = db.collection("Categories");
+    const Filters = db.collection("filters");
+
     const id = req.params.id;
-    const { name, description } = req.body;
+    const { name, description, filter, attribute } = req.body;
     const image = req.files?.image?.[0]?.path;
+
     if (!id) {
-      return res.status(401).send({
-        message: "Please Check ID"
-      })
+      return res.status(400).json({ message: "Please Check ID" });
     }
 
-    const existing = await collection.findOne({ _id: new ObjectId(id) });
+    const existing = await Categories.findOne({ _id: new ObjectId(id) });
     if (!existing) {
-      return res.status(404).send({ message: "Category not found" });
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // --- Process Filters ---
+    let finalFilterArray = [];
+    if (filter) {
+      let parsedFilter;
+      try {
+        parsedFilter = typeof filter === "string" ? JSON.parse(filter) : filter;
+      } catch (err) {
+        parsedFilter = [];
+      }
+
+      for (let item of parsedFilter) {
+        const filterDoc = await Filters.findOne({ _id: new ObjectId(item._id) });
+        if (!filterDoc) continue;
+
+        const selectedArray = [];
+        const selectedIds = Array.isArray(item.selected) ? item.selected : [item.selected];
+
+        for (const sel of selectedIds) {
+          const selId = typeof sel === 'object' ? sel._id : sel;
+          const selectedObj = filterDoc.Filter.find(
+            (f) => f._id.toString() === selId.toString()
+          );
+          if (selectedObj) {
+            selectedArray.push({
+              _id: selectedObj._id,
+              name: selectedObj.name,
+            });
+          }
+        }
+
+        if (selectedArray.length > 0) {
+          finalFilterArray.push({
+            _id: filterDoc._id,
+            Filter_name: filterDoc.Filter_name,
+            selected: selectedArray,
+          });
+        }
+      }
+    }
+
+    // --- Process Attribute ---
+    let parsedAttributes = [];
+    if (attribute) {
+      try {
+        parsedAttributes = typeof attribute === "string" ? JSON.parse(attribute) : attribute;
+      } catch (err) {
+        parsedAttributes = [];
+      }
     }
 
     const updateFields = {
       name: name || existing.name,
       description: description || existing.description,
       image: image || existing.image,
+      filter: finalFilterArray,
+      attribute: parsedAttributes.length > 0 ? parsedAttributes : existing.attribute || [],
     };
 
-    const result = await collection.findOneAndUpdate(
+    const result = await Categories.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: updateFields },
+      { returnDocument: "after" }
     );
 
-    if (result) {
-      res.status(200).send(
-        { message: "Success", result: result }
-      )
-    }
+    return res.status(200).json({
+      message: "Category updated successfully",
+      result: result.value,
+    });
+  } catch (err) {
+    console.error("❌ Edit Category Error:", err);
+    return res.status(500).json({ message: "Server Error", error: err.message });
   }
-  catch (err) {
-    res.send(err)
-  }
-}
+};
+
+
+
 
 const EditCategory = async (req, res) => {
   try {
@@ -1436,25 +1514,25 @@ const ProductToggleUpdate = async (req, res) => {
 };
 
 
-const GetFilter=async(req,res)=>{
-  try{
-   const db=await Connection();
-   const collection=db.collection('filters')
-   const id=req.params.id;
-   const result=await collection.findOne({ _id: new ObjectId(id) })
-   if(result){
-    res.status(200).send({
-      message:"Success",
-      result:result
-    })
-   }
-   else{
-    res.status(400).send({
-      message:'Something wrong'
-    })
-   }
+const GetFilter = async (req, res) => {
+  try {
+    const db = await Connection();
+    const collection = db.collection('filters')
+    const id = req.params.id;
+    const result = await collection.findOne({ _id: new ObjectId(id) })
+    if (result) {
+      res.status(200).send({
+        message: "Success",
+        result: result
+      })
+    }
+    else {
+      res.status(400).send({
+        message: 'Something wrong'
+      })
+    }
   }
-  catch(err){
+  catch (err) {
     res.send(err)
   }
 }
@@ -1503,7 +1581,8 @@ module.exports = {
   ProductToggleUpdate,
   GetFilter,
   addFilterNameToCategory,
-  addFilterValueToCategoryFilter
+  addFilterValueToCategoryFilter,
+  GetCategoryById
 };
 
 

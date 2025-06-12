@@ -31,6 +31,7 @@ router.post(
   Controll.Categories
 );
 router.get('/getCategories', Controll.GetCategories);
+router.get('/getcategorybyid/:id',Controll.GetCategoryById)
 router.get('/getsubcat/:categoryId',Controll.GetSubCategories);
 router.get('/getsubsubcat/:subcatId',Controll.GetSubSubCategories);
 
