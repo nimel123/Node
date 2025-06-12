@@ -410,20 +410,46 @@ const SearchLocation = async (req, res) => {
 
 //Add Main Category
 
+
 const addMainCategory = async (req, res) => {
   try {
     const { name, description, attribute, filter } = req.body;
-
     const image = req.files.image?.[0].path;
 
     if (!name || !description || !image) {
-      console.log(name, image, description);
-
       return res.status(400).json({ message: "Name, description and image are required" });
     }
 
     const db = await Connection();
-    const collection = db.collection("Categories");
+    const categoryCollection = db.collection("Categories");
+    const filterCollection = db.collection("filters");
+
+    let parsedFilters = [];
+
+    if (filter) {
+      const rawFilters = JSON.parse(filter); // array of { _id }
+
+      for (const f of rawFilters) {
+        const filterId = new ObjectId(f._id);
+        const filterDoc = await filterCollection.findOne({ _id: filterId });
+
+        if (!filterDoc) {
+          console.log(`Filter not found for id: ${f._id}`);
+          continue;
+        }
+
+        const selectedValues = filterDoc.Filter.map(item => ({
+          _id: new ObjectId(item._id),
+          name: item.name
+        }));
+
+        parsedFilters.push({
+          _id: filterId,
+          Filter_name: filterDoc.Filter_name,
+          selected: selectedValues
+        });
+      }
+    }
 
     const newCategory = {
       name,
@@ -432,14 +458,14 @@ const addMainCategory = async (req, res) => {
       subcat: [],
       status: true,
       attribute: attribute ? JSON.parse(attribute) : [],
-      filter: filter ? JSON.parse(filter) : []
+      filter: parsedFilters
     };
 
-    const result = await collection.insertOne(newCategory);
+    const result = await categoryCollection.insertOne(newCategory);
 
     res.status(201).json({ message: "Main Category added", id: result.insertedId });
   } catch (error) {
-    console.error(error);
+    console.error("Error while adding category:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -459,6 +485,35 @@ const addSubCategory = async (req, res) => {
 
     const db = await Connection();
     const mainCategoryCollection = db.collection("Categories");
+    const filterCollection = db.collection("filters");
+
+    let parsedFilters = [];
+
+    if (filter) {
+      const rawFilters = JSON.parse(filter); // array of { _id }
+
+      for (const f of rawFilters) {
+        const filterId = new ObjectId(f._id);
+        const filterDoc = await filterCollection.findOne({ _id: filterId });
+
+        if (!filterDoc) {
+          console.log(`Filter not found for id: ${f._id}`);
+          continue;
+        }
+
+        const selectedValues = filterDoc.Filter.map(item => ({
+          _id: new ObjectId(item._id),
+          name: item.name
+        }));
+
+        parsedFilters.push({
+          _id: filterId,
+          Filter_name: filterDoc.Filter_name,
+          selected: selectedValues
+        });
+      }
+    }
+
 
     // Subcategory object
     const newSubCategory = {
@@ -469,7 +524,7 @@ const addSubCategory = async (req, res) => {
       status: true,
       subSubCat: [],
       attribute: attribute ? JSON.parse(attribute) : [],
-      filter: filter ? JSON.parse(filter) : []
+      filter: parsedFilters
     };
 
     // Main category me subcategory add karni hai
@@ -503,6 +558,35 @@ const addSubSubCategory = async (req, res) => {
 
     const db = await Connection();
     const collection = db.collection("Categories");
+    const filterCollection = db.collection("filters");
+
+    let parsedFilters = [];
+
+    if (filter) {
+      const rawFilters = JSON.parse(filter); // array of { _id }
+
+      for (const f of rawFilters) {
+        const filterId = new ObjectId(f._id);
+        const filterDoc = await filterCollection.findOne({ _id: filterId });
+
+        if (!filterDoc) {
+          console.log(`Filter not found for id: ${f._id}`);
+          continue;
+        }
+
+        const selectedValues = filterDoc.Filter.map(item => ({
+          _id: new ObjectId(item._id),
+          name: item.name
+        }));
+
+        parsedFilters.push({
+          _id: filterId,
+          Filter_name: filterDoc.Filter_name,
+          selected: selectedValues
+        });
+      }
+    }
+
 
     const newSubSubCat = {
       _id: new ObjectId(),
@@ -511,7 +595,7 @@ const addSubSubCategory = async (req, res) => {
       description,
       status: true,
       attribute: attribute ? JSON.parse(attribute) : [],
-      filter: filter ? JSON.parse(filter) : []
+      filter: parsedFilters
     };
 
 
