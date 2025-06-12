@@ -73,6 +73,7 @@ router.delete('/deleteTax/:id',Controll.handleDelteTax)
 router.put('/edit-tax/:id',Controll.EditTax)
 router.put('/edit-unit/:id',Controll.EditUnit)
 router.put('/edit-toggle/:id',Controll.ProductToggleUpdate)
+router.get('/getfilter/:id',Controll.GetFilter)
 
 
 

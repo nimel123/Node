@@ -1246,6 +1246,32 @@ const ProductToggleUpdate = async (req, res) => {
 };
 
 
+const GetFilter=async(req,res)=>{
+  try{
+   const db=await Connection();
+   const collection=db.collection('filters')
+   const id=req.params.id;
+   const result=await collection.findOne({ _id: new ObjectId(id) })
+   if(result){
+    res.status(200).send({
+      message:"Success",
+      result:result
+    })
+   }
+   else{
+    res.status(400).send({
+      message:'Something wrong'
+    })
+   }
+  }
+  catch(err){
+    res.send(err)
+  }
+}
+
+
+
+
 module.exports = {
   AddLocation,
   GetLocation,
@@ -1284,7 +1310,8 @@ module.exports = {
   handleDelteTax,
   EditTax,
   EditUnit,
-  ProductToggleUpdate
+  ProductToggleUpdate,
+  GetFilter
 };
 
 
