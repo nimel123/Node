@@ -447,7 +447,7 @@ const addMainCategory = async (req, res) => {
     let parsedFilters = [];
 
     if (filter) {
-      const rawFilters = JSON.parse(filter); // array of { _id }
+      const rawFilters = JSON.parse(filter); 
 
       for (const f of rawFilters) {
         const filterId = new ObjectId(f._id);
@@ -458,15 +458,14 @@ const addMainCategory = async (req, res) => {
           continue;
         }
 
-        const selectedValues = filterDoc.Filter.map(item => ({
-          _id: new ObjectId(item._id),
-          name: item.name
-        }));
+        // const selectedValues = filterDoc.Filter.map(item => ({
+        //   _id: new ObjectId(item._id),
+        //   name: item.name
+        // }));
 
         parsedFilters.push({
           _id: filterId,
           Filter_name: filterDoc.Filter_name,
-          selected: selectedValues
         });
       }
     }
@@ -507,33 +506,6 @@ const addSubCategory = async (req, res) => {
     const mainCategoryCollection = db.collection("Categories");
     const filterCollection = db.collection("filters");
 
-    let parsedFilters = [];
-
-    if (filter) {
-      const rawFilters = JSON.parse(filter);
-
-      for (const f of rawFilters) {
-        const filterId = new ObjectId(f._id);
-        const filterDoc = await filterCollection.findOne({ _id: filterId });
-
-        if (!filterDoc) {
-          console.log(`Filter not found for id: ${f._id}`);
-          continue;
-        }
-
-        const selectedValues = filterDoc.Filter.map(item => ({
-          _id: new ObjectId(item._id),
-          name: item.name
-        }));
-
-        parsedFilters.push({
-          _id: filterId,
-          Filter_name: filterDoc.Filter_name,
-          selected: selectedValues
-        });
-      }
-    }
-
 
     // Subcategory object
     const newSubCategory = {
@@ -544,7 +516,6 @@ const addSubCategory = async (req, res) => {
       status: true,
       subSubCat: [],
       attribute: attribute ? JSON.parse(attribute) : [],
-      filter: parsedFilters
     };
 
 
@@ -578,36 +549,7 @@ const addSubSubCategory = async (req, res) => {
 
     const db = await Connection();
     const collection = db.collection("Categories");
-    const filterCollection = db.collection("filters");
-
-    let parsedFilters = [];
-
-    if (filter) {
-      const rawFilters = JSON.parse(filter); // array of { _id }
-
-      for (const f of rawFilters) {
-        const filterId = new ObjectId(f._id);
-        const filterDoc = await filterCollection.findOne({ _id: filterId });
-
-        if (!filterDoc) {
-          console.log(`Filter not found for id: ${f._id}`);
-          continue;
-        }
-
-        const selectedValues = filterDoc.Filter.map(item => ({
-          _id: new ObjectId(item._id),
-          name: item.name
-        }));
-
-        parsedFilters.push({
-          _id: filterId,
-          Filter_name: filterDoc.Filter_name,
-          selected: selectedValues
-        });
-      }
-    }
-
-
+    
     const newSubSubCat = {
       _id: new ObjectId(),
       name,
@@ -615,7 +557,6 @@ const addSubSubCategory = async (req, res) => {
       description,
       status: true,
       attribute: attribute ? JSON.parse(attribute) : [],
-      filter: parsedFilters
     };
 
 
@@ -640,51 +581,51 @@ const addSubSubCategory = async (req, res) => {
 
 
 
-const addFilterNameToCategory = async (req, res) => {
-  const { Filter_name } = req.body;
-  const category_id = req.params.id;
+  const addFilterNameToCategory = async (req, res) => {
+    const { Filter_name } = req.body;
+    const category_id = req.params.id;
 
-  if (!Filter_name || !category_id) {
-    return res.status(400).json({ error: "category_id and filter_name are required" });
-  }
-
-  try {
-    const db = await Connection();
-    const collection = db.collection("Categories");
-
-    const category = await collection.findOne({ _id: new ObjectId(category_id) });
-
-    if (!category) {
-      return res.status(404).json({ error: "Category not found" });
+    if (!Filter_name || !category_id) {
+      return res.status(400).json({ error: "category_id and filter_name are required" });
     }
 
-    const filterArray = Array.isArray(category.filter) ? category.filter : [];
-    const exists = filterArray.some(
-      (f) => f.Filter_name.toLowerCase() === Filter_name.toLowerCase()
-    );
+    try {
+      const db = await Connection();
+      const collection = db.collection("Categories");
 
-    if (exists) {
-      return res.status(400).json({ error: "Filter already exists in category" });
+      const category = await collection.findOne({ _id: new ObjectId(category_id) });
+
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
+      const filterArray = Array.isArray(category.filter) ? category.filter : [];
+      const exists = filterArray.some(
+        (f) => f.Filter_name.toLowerCase() === Filter_name.toLowerCase()
+      );
+
+      if (exists) {
+        return res.status(400).json({ error: "Filter already exists in category" });
+      }
+
+      const newFilter = {
+        _id: new ObjectId(),
+        Filter_name: Filter_name,
+        selected: []
+      };
+
+      await collection.updateOne(
+        { _id: new ObjectId(category_id) },
+        { $push: { filter: newFilter } }
+      );
+
+      res.status(200).json({ message: "Filter name added successfully", newFilter });
+
+    } catch (err) {
+      console.error("Error:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-
-    const newFilter = {
-      _id: new ObjectId(),
-      Filter_name: Filter_name,
-      selected: []
-    };
-
-    await collection.updateOne(
-      { _id: new ObjectId(category_id) },
-      { $push: { filter: newFilter } }
-    );
-
-    res.status(200).json({ message: "Filter name added successfully", newFilter });
-
-  } catch (err) {
-    console.error("Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
+  };
 
 
 const addFilterValueToCategoryFilter = async (req, res) => {
@@ -988,7 +929,7 @@ const EditMainCategory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    // --- Process Filters ---
+    // ✅ Filter Processing (Only ID comes from frontend)
     let finalFilterArray = [];
     if (filter) {
       let parsedFilter;
@@ -999,36 +940,18 @@ const EditMainCategory = async (req, res) => {
       }
 
       for (let item of parsedFilter) {
-        const filterDoc = await Filters.findOne({ _id: new ObjectId(item._id) });
+        const filterId = new ObjectId(item._id);
+        const filterDoc = await Filters.findOne({ _id: filterId });
         if (!filterDoc) continue;
 
-        const selectedArray = [];
-        const selectedIds = Array.isArray(item.selected) ? item.selected : [item.selected];
-
-        for (const sel of selectedIds) {
-          const selId = typeof sel === 'object' ? sel._id : sel;
-          const selectedObj = filterDoc.Filter.find(
-            (f) => f._id.toString() === selId.toString()
-          );
-          if (selectedObj) {
-            selectedArray.push({
-              _id: selectedObj._id,
-              name: selectedObj.name,
-            });
-          }
-        }
-
-        if (selectedArray.length > 0) {
-          finalFilterArray.push({
-            _id: filterDoc._id,
-            Filter_name: filterDoc.Filter_name,
-            selected: selectedArray,
-          });
-        }
+        finalFilterArray.push({
+          _id: filterDoc._id,
+          Filter_name: filterDoc.Filter_name,
+        });
       }
     }
 
-    // --- Process Attribute ---
+    // ✅ Attribute processing
     let parsedAttributes = [];
     if (attribute) {
       try {
@@ -1061,6 +984,7 @@ const EditMainCategory = async (req, res) => {
     return res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
+
 
 
 
@@ -1536,7 +1460,6 @@ const GetFilter = async (req, res) => {
     res.send(err)
   }
 }
-
 
 
 
