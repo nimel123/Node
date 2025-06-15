@@ -1463,6 +1463,9 @@ const GetFilter = async (req, res) => {
 
 
 
+
+
+
 module.exports = {
   AddLocation,
   GetLocation,
@@ -1505,7 +1508,7 @@ module.exports = {
   GetFilter,
   addFilterNameToCategory,
   addFilterValueToCategoryFilter,
-  GetCategoryById
+  GetCategoryById,
 };
 
 
